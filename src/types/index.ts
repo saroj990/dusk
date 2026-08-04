@@ -12,9 +12,25 @@ export interface Chat {
   title: string
   provider: string
   model: string
+  projectId: string | null
   createdAt: number
   updatedAt: number
   messages: Message[]
+}
+
+export interface Project {
+  id: string
+  name: string
+  createdAt: number
+  updatedAt: number
+}
+
+export interface Prompt {
+  id: string
+  title: string
+  content: string
+  createdAt: number
+  updatedAt: number
 }
 
 export interface Model {
@@ -53,9 +69,12 @@ export interface AppSettings {
   theme: ThemeMode
   activeProviderId: string
   activeModel: string
+  activeProjectId: string | null
   systemPrompt: string
   temperature: number
   providers: ProviderConfig[]
+  favoriteModels: string[]
+  recentModels: string[]
   sidebarCollapsed: boolean
 }
 
@@ -63,9 +82,12 @@ export const DEFAULT_SETTINGS: AppSettings = {
   theme: 'system',
   activeProviderId: 'ollama',
   activeModel: '',
+  activeProjectId: null,
   systemPrompt: '',
   temperature: 0.7,
   sidebarCollapsed: false,
+  favoriteModels: [],
+  recentModels: [],
   providers: [
     {
       id: 'ollama',

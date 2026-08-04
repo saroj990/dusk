@@ -3,12 +3,18 @@ import { ArrowUp, Square } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/utils/cn'
 
+export interface InsertRequest {
+  id: number
+  text: string
+}
+
 interface ChatInputProps {
   onSend: (content: string) => void
   onStop: () => void
   isStreaming: boolean
   disabled?: boolean
   placeholder?: string
+  insertRequest?: InsertRequest | null
 }
 
 export function ChatInput({
@@ -17,6 +23,7 @@ export function ChatInput({
   isStreaming,
   disabled,
   placeholder = 'Message…',
+  insertRequest,
 }: ChatInputProps) {
   const [value, setValue] = useState('')
   const ref = useRef<HTMLTextAreaElement>(null)
@@ -27,6 +34,15 @@ export function ChatInput({
     el.style.height = 'auto'
     el.style.height = `${Math.min(el.scrollHeight, 200)}px`
   }, [value])
+
+  useEffect(() => {
+    if (!insertRequest) return
+    setValue((prev) => {
+      if (!prev.trim()) return insertRequest.text
+      return `${prev.replace(/\s+$/, '')}\n\n${insertRequest.text}`
+    })
+    window.setTimeout(() => ref.current?.focus(), 0)
+  }, [insertRequest])
 
   const submit = () => {
     if (!value.trim() || isStreaming || disabled) return

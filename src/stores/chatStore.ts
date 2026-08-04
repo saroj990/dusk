@@ -11,11 +11,20 @@ interface ChatState {
   error: string | null
   hydrated: boolean
   hydrate: () => Promise<void>
-  createChat: (provider: string, model: string) => Promise<Chat>
+  createChat: (
+    provider: string,
+    model: string,
+    projectId?: string | null,
+  ) => Promise<Chat>
   selectChat: (id: string | null) => void
   deleteChat: (id: string) => Promise<void>
   renameChat: (id: string, title: string) => Promise<void>
-  appendMessage: (chatId: string, message: Omit<Message, 'id' | 'createdAt'> & { id?: string }) => Promise<Message>
+  moveChatToProject: (chatId: string, projectId: string | null) => Promise<void>
+  clearProjectFromChats: (projectId: string) => Promise<void>
+  appendMessage: (
+    chatId: string,
+    message: Omit<Message, 'id' | 'createdAt'> & { id?: string },
+  ) => Promise<Message>
   updateMessage: (chatId: string, messageId: string, content: string) => Promise<void>
   setMessages: (chatId: string, messages: Message[]) => Promise<void>
   setStreaming: (isStreaming: boolean) => void
@@ -45,13 +54,14 @@ export const useChatStore = create<ChatState>((set, get) => ({
     })
   },
 
-  createChat: async (provider, model) => {
+  createChat: async (provider, model, projectId = null) => {
     const now = Date.now()
     const chat: Chat = {
       id: createId(),
       title: 'New chat',
       provider,
       model,
+      projectId: projectId ?? null,
       createdAt: now,
       updatedAt: now,
       messages: [],
@@ -90,6 +100,30 @@ export const useChatStore = create<ChatState>((set, get) => ({
     }))
   },
 
+  moveChatToProject: async (chatId, projectId) => {
+    const chat = get().chats.find((c) => c.id === chatId)
+    if (!chat) return
+    const updated = { ...chat, projectId, updatedAt: Date.now() }
+    await persistChat(updated)
+    set((state) => ({
+      chats: state.chats.map((c) => (c.id === chatId ? updated : c)),
+    }))
+  },
+
+  clearProjectFromChats: async (projectId) => {
+    const affected = get().chats.filter((c) => c.projectId === projectId)
+    await Promise.all(
+      affected.map((chat) =>
+        persistChat({ ...chat, projectId: null, updatedAt: Date.now() }),
+      ),
+    )
+    set((state) => ({
+      chats: state.chats.map((c) =>
+        c.projectId === projectId ? { ...c, projectId: null } : c,
+      ),
+    }))
+  },
+
   appendMessage: async (chatId, message) => {
     const chat = get().chats.find((c) => c.id === chatId)
     if (!chat) throw new Error('Chat not found')
@@ -111,10 +145,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
 
     await persistChat(updated)
     set((state) => ({
-      chats: [
-        updated,
-        ...state.chats.filter((c) => c.id !== chatId),
-      ],
+      chats: [updated, ...state.chats.filter((c) => c.id !== chatId)],
     }))
     return full
   },
@@ -149,10 +180,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
 
     await persistChat(updated)
     set((state) => ({
-      chats: [
-        updated,
-        ...state.chats.filter((c) => c.id !== chatId),
-      ],
+      chats: [updated, ...state.chats.filter((c) => c.id !== chatId)],
     }))
   },
 

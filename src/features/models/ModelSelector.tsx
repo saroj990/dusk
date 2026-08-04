@@ -1,4 +1,4 @@
-import { RefreshCw } from 'lucide-react'
+import { RefreshCw, Star } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
   Select,
@@ -16,22 +16,49 @@ import {
 export function ModelSelector() {
   const settings = useSettingsStore((s) => s.settings)
   const setActiveModel = useSettingsStore((s) => s.setActiveModel)
+  const setActiveProvider = useSettingsStore((s) => s.setActiveProvider)
+  const toggleFavoriteModel = useSettingsStore((s) => s.toggleFavoriteModel)
   const models = useModelStore((s) => s.models)
   const loading = useModelStore((s) => s.loading)
   const connected = useModelStore((s) => s.connected)
   const error = useModelStore((s) => s.error)
   const refresh = useModelStore((s) => s.refresh)
 
+  const enabledProviders = settings.providers.filter((p) => p.enabled)
   const provider = getActiveProviderConfig(settings)
+  const favorites = new Set(settings.favoriteModels)
+
+  const sortedModels = [...models].sort((a, b) => {
+    const af = favorites.has(a.id) ? 0 : 1
+    const bf = favorites.has(b.id) ? 0 : 1
+    if (af !== bf) return af - bf
+    return a.name.localeCompare(b.name)
+  })
 
   return (
-    <div className="flex min-w-0 items-center gap-2">
+    <div className="flex min-w-0 flex-wrap items-center gap-2">
+      <Select
+        value={provider?.id}
+        onValueChange={(id) => void setActiveProvider(id)}
+      >
+        <SelectTrigger className="h-8 w-[140px] sm:w-[160px]">
+          <SelectValue placeholder="Provider" />
+        </SelectTrigger>
+        <SelectContent>
+          {enabledProviders.map((p) => (
+            <SelectItem key={p.id} value={p.id}>
+              {p.name}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+
       <Select
         value={settings.activeModel || undefined}
-        onValueChange={setActiveModel}
+        onValueChange={(id) => void setActiveModel(id)}
         disabled={!models.length}
       >
-        <SelectTrigger className="h-8 w-[180px] sm:w-[220px]">
+        <SelectTrigger className="h-8 w-[160px] sm:w-[220px]">
           <SelectValue
             placeholder={
               loading
@@ -43,19 +70,43 @@ export function ModelSelector() {
           />
         </SelectTrigger>
         <SelectContent>
-          {models.map((model) => (
+          {sortedModels.map((model) => (
             <SelectItem key={model.id} value={model.id}>
-              {model.name}
+              <span className="flex items-center gap-1.5">
+                {favorites.has(model.id) && (
+                  <Star className="h-3 w-3 fill-current text-amber-500" />
+                )}
+                {model.name}
+              </span>
             </SelectItem>
           ))}
         </SelectContent>
       </Select>
 
+      {settings.activeModel && (
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-8 w-8 shrink-0"
+          onClick={() => void toggleFavoriteModel(settings.activeModel)}
+          aria-label="Toggle favorite model"
+          title="Favorite model"
+        >
+          <Star
+            className={`h-3.5 w-3.5 ${
+              favorites.has(settings.activeModel)
+                ? 'fill-amber-500 text-amber-500'
+                : ''
+            }`}
+          />
+        </Button>
+      )}
+
       <Button
         variant="ghost"
         size="icon"
         className="h-8 w-8 shrink-0"
-        onClick={() => refresh(provider)}
+        onClick={() => void refresh(provider)}
         disabled={loading}
         aria-label="Refresh models"
         title={error ?? 'Refresh models'}

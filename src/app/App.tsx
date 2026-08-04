@@ -3,13 +3,17 @@ import { Menu } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Sidebar } from '@/features/chat/Sidebar'
 import { ChatView } from '@/features/chat/ChatView'
-import { ChatInput } from '@/features/chat/ChatInput'
+import { ChatInput, type InsertRequest } from '@/features/chat/ChatInput'
 import { ModelSelector } from '@/features/models/ModelSelector'
+import { ModelManagerDialog } from '@/features/models/ModelManagerDialog'
+import { PromptLibraryDialog } from '@/features/prompts/PromptLibraryDialog'
 import { SettingsDialog } from '@/features/settings/SettingsDialog'
 import { useChat } from '@/hooks/useChat'
 import { useTheme } from '@/hooks/useTheme'
 import { useChatStore } from '@/stores/chatStore'
 import { useModelStore } from '@/stores/modelStore'
+import { usePromptStore } from '@/stores/promptStore'
+import { useProjectStore } from '@/stores/projectStore'
 import {
   getActiveProviderConfig,
   useSettingsStore,
@@ -19,10 +23,15 @@ export function App() {
   useTheme()
 
   const [settingsOpen, setSettingsOpen] = useState(false)
+  const [promptsOpen, setPromptsOpen] = useState(false)
+  const [modelsOpen, setModelsOpen] = useState(false)
   const [mobileSidebar, setMobileSidebar] = useState(false)
+  const [insertRequest, setInsertRequest] = useState<InsertRequest | null>(null)
 
   const hydrateSettings = useSettingsStore((s) => s.hydrate)
   const hydrateChats = useChatStore((s) => s.hydrate)
+  const hydratePrompts = usePromptStore((s) => s.hydrate)
+  const hydrateProjects = useProjectStore((s) => s.hydrate)
   const settingsHydrated = useSettingsStore((s) => s.hydrated)
   const chatsHydrated = useChatStore((s) => s.hydrated)
   const settings = useSettingsStore((s) => s.settings)
@@ -34,7 +43,9 @@ export function App() {
   useEffect(() => {
     void hydrateSettings()
     void hydrateChats()
-  }, [hydrateChats, hydrateSettings])
+    void hydratePrompts()
+    void hydrateProjects()
+  }, [hydrateChats, hydratePrompts, hydrateProjects, hydrateSettings])
 
   useEffect(() => {
     if (!settingsHydrated) return
@@ -70,6 +81,14 @@ export function App() {
           setSettingsOpen(true)
           setMobileSidebar(false)
         }}
+        onOpenPrompts={() => {
+          setPromptsOpen(true)
+          setMobileSidebar(false)
+        }}
+        onOpenModels={() => {
+          setModelsOpen(true)
+          setMobileSidebar(false)
+        }}
         mobileOpen={mobileSidebar}
         onCloseMobile={() => setMobileSidebar(false)}
       />
@@ -97,6 +116,7 @@ export function App() {
           onStop={stop}
           isStreaming={isStreaming}
           disabled={!settings.activeModel}
+          insertRequest={insertRequest}
           placeholder={
             settings.activeModel
               ? `Message ${settings.activeModel}…`
@@ -106,6 +126,14 @@ export function App() {
       </div>
 
       <SettingsDialog open={settingsOpen} onOpenChange={setSettingsOpen} />
+      <PromptLibraryDialog
+        open={promptsOpen}
+        onOpenChange={setPromptsOpen}
+        onInsert={(text) =>
+          setInsertRequest({ id: Date.now(), text })
+        }
+      />
+      <ModelManagerDialog open={modelsOpen} onOpenChange={setModelsOpen} />
     </div>
   )
 }

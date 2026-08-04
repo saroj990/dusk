@@ -134,7 +134,11 @@ export function useChat() {
 
       let chat = getActiveChat()
       if (!chat) {
-        chat = await createChat(providerConfig.id, settings.activeModel)
+        chat = await createChat(
+          providerConfig.id,
+          settings.activeModel,
+          settings.activeProjectId,
+        )
       }
 
       await appendMessage(chat.id, { role: 'user', content: trimmed })

@@ -1,33 +1,39 @@
-# Ollama Client
+# Dusk
 
-Lightweight, open-source AI chat client for local [Ollama](https://ollama.com) models.
+Lightweight, open-source AI chat client for local models — dark-first, fast, no backend.
 
-Built with React 19, TypeScript, Vite, Tailwind CSS, and Zustand. No backend server, no Docker, no Python.
+Built with React 19, TypeScript, Vite, Tailwind CSS, and Zustand. No Docker, no Python runtime.
 
-## Phase 1
+## Features
 
-- Project scaffold with feature-based architecture
-- Provider abstraction (`AIProvider`)
-- Ollama integration with streaming chat
-- IndexedDB local storage for chats and settings
-- Settings (theme, base URL, system prompt, temperature)
-- Dark / light / system theme
-- Responsive chat UI with markdown and code copy
+### Phase 1
+- Provider abstraction + Ollama streaming chat
+- IndexedDB local storage
+- Settings, dark / light / system theme
+- Markdown, code copy, regenerate, edit & resend
+
+### Phase 2
+- OpenAI-compatible providers (LM Studio, vLLM, OpenAI, etc.)
+- Prompt library (save / insert)
+- Model management (pull / delete for Ollama, favorites, recent)
+- Projects (group chats)
 
 ## Prerequisites
 
 - Node.js 20+
-- [Ollama](https://ollama.com) running locally with at least one model pulled
+- A running local provider, e.g. [Ollama](https://ollama.com)
 
 ```bash
 ollama pull llama3.2
 ```
 
-If the browser cannot reach Ollama, allow local origins:
+If the browser cannot reach Ollama:
 
 ```bash
 OLLAMA_ORIGINS="http://localhost:5173,http://127.0.0.1:5173" ollama serve
 ```
+
+For OpenAI-compatible servers, add them in **Settings → Providers** (base URL like `http://localhost:1234/v1`).
 
 ## Develop
 
@@ -45,27 +51,17 @@ npm run build
 npm run preview
 ```
 
-## Scripts
-
-| Command | Description |
-| --- | --- |
-| `npm run dev` | Start Vite dev server |
-| `npm run build` | Typecheck and production build |
-| `npm run preview` | Preview production build |
-| `npm run lint` | Run ESLint |
-| `npm run format` | Format with Prettier |
-
 ## Architecture
 
 ```
 src/
  ├── app/           # App shell
- ├── components/    # Shared UI (shadcn-style)
- ├── features/      # Chat, models, settings
+ ├── components/    # Shared UI
+ ├── features/      # Chat, models, prompts, settings
  ├── services/      # Providers + IndexedDB
  ├── stores/        # Zustand state
  ├── hooks/
  ├── plugins/       # Extension points (Phase 3)
-├── utils/
+ ├── utils/
 └── types/
 ```
