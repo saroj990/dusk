@@ -22,10 +22,12 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
+import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { useChatStore } from '@/stores/chatStore'
 import { useProjectStore } from '@/stores/projectStore'
 import { useSettingsStore } from '@/stores/settingsStore'
 import { formatRelativeTime, cn } from '@/utils/cn'
+import type { Chat } from '@/types'
 
 interface SidebarProps {
   onOpenSettings: () => void
@@ -62,6 +64,7 @@ export function Sidebar({
 
   const [newProjectName, setNewProjectName] = useState('')
   const [addingProject, setAddingProject] = useState(false)
+  const [chatToDelete, setChatToDelete] = useState<Chat | null>(null)
 
   const visibleChats = useMemo(() => {
     if (!activeProjectId) return chats
@@ -321,7 +324,7 @@ export function Sidebar({
                   variant="ghost"
                   size="icon"
                   className="h-7 w-7 shrink-0 opacity-0 group-hover:opacity-100"
-                  onClick={() => deleteChat(chat.id)}
+                  onClick={() => setChatToDelete(chat)}
                   aria-label="Delete chat"
                 >
                   <Trash2 className="h-3.5 w-3.5" />
@@ -341,6 +344,23 @@ export function Sidebar({
           </Button>
         </div>
       </aside>
+
+      <ConfirmDialog
+        open={chatToDelete !== null}
+        onOpenChange={(open) => {
+          if (!open) setChatToDelete(null)
+        }}
+        title="Delete chat?"
+        description={
+          chatToDelete
+            ? `“${chatToDelete.title}” will be permanently removed. This cannot be undone.`
+            : ''
+        }
+        confirmLabel="Delete chat"
+        onConfirm={() => {
+          if (chatToDelete) void deleteChat(chatToDelete.id)
+        }}
+      />
     </>
   )
 }
