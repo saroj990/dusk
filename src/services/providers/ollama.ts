@@ -72,7 +72,11 @@ export class OllamaProvider implements AIProvider {
       signal: request.signal,
       body: JSON.stringify({
         model: request.model,
-        messages: messages.map((m) => ({ role: m.role, content: m.content })),
+        messages: messages.map((m) => ({
+          role: m.role,
+          content: m.content,
+          ...(m.images?.length ? { images: m.images } : {}),
+        })),
         stream: true,
         options:
           request.temperature !== undefined

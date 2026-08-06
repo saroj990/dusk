@@ -6,6 +6,7 @@ import { createId, truncate } from '@/utils/cn'
 interface ChatState {
   chats: Chat[]
   activeChatId: string | null
+  focusedMessageId: string | null
   isStreaming: boolean
   streamingContent: string
   error: string | null
@@ -16,7 +17,8 @@ interface ChatState {
     model: string,
     projectId?: string | null,
   ) => Promise<Chat>
-  selectChat: (id: string | null) => void
+  selectChat: (id: string | null, focusedMessageId?: string | null) => void
+  clearFocusedMessage: () => void
   deleteChat: (id: string) => Promise<void>
   renameChat: (id: string, title: string) => Promise<void>
   moveChatToProject: (chatId: string, projectId: string | null) => Promise<void>
@@ -40,6 +42,7 @@ async function persistChat(chat: Chat) {
 export const useChatStore = create<ChatState>((set, get) => ({
   chats: [],
   activeChatId: null,
+  focusedMessageId: null,
   isStreaming: false,
   streamingContent: '',
   error: null,
@@ -50,6 +53,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
     set({
       chats,
       activeChatId: chats[0]?.id ?? null,
+      focusedMessageId: null,
       hydrated: true,
     })
   },
@@ -70,15 +74,23 @@ export const useChatStore = create<ChatState>((set, get) => ({
     set((state) => ({
       chats: [chat, ...state.chats],
       activeChatId: chat.id,
+      focusedMessageId: null,
       error: null,
       streamingContent: '',
     }))
     return chat
   },
 
-  selectChat: (id) => {
-    set({ activeChatId: id, error: null, streamingContent: '' })
+  selectChat: (id, focusedMessageId = null) => {
+    set({
+      activeChatId: id,
+      focusedMessageId: focusedMessageId ?? null,
+      error: null,
+      streamingContent: '',
+    })
   },
+
+  clearFocusedMessage: () => set({ focusedMessageId: null }),
 
   deleteChat: async (id) => {
     await storage.deleteChat(id)
@@ -133,12 +145,17 @@ export const useChatStore = create<ChatState>((set, get) => ({
       role: message.role,
       content: message.content,
       createdAt: Date.now(),
+      attachments: message.attachments,
     }
 
     const isFirstUser = chat.messages.length === 0 && full.role === 'user'
+    const titleSource =
+      full.content.trim() ||
+      full.attachments?.[0]?.name ||
+      'New chat'
     const updated: Chat = {
       ...chat,
-      title: isFirstUser ? truncate(full.content, 42) : chat.title,
+      title: isFirstUser ? truncate(titleSource, 42) : chat.title,
       messages: [...chat.messages, full],
       updatedAt: Date.now(),
     }

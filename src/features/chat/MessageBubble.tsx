@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react'
 import {
   Check,
   Copy,
+  FileText,
+  ImageIcon,
   Pencil,
   RefreshCw,
   User,
@@ -11,11 +13,12 @@ import type { Message } from '@/types'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { Markdown } from './Markdown'
-import { cn } from '@/utils/cn'
+import { cn, formatBytes } from '@/utils/cn'
 
 interface MessageBubbleProps {
   message: Message
   isStreaming?: boolean
+  highlighted?: boolean
   onRegenerate?: () => void
   onEdit?: (content: string) => void
 }
@@ -23,6 +26,7 @@ interface MessageBubbleProps {
 export function MessageBubble({
   message,
   isStreaming,
+  highlighted,
   onRegenerate,
   onEdit,
 }: MessageBubbleProps) {
@@ -43,9 +47,12 @@ export function MessageBubble({
 
   return (
     <div
+      id={`message-${message.id}`}
+      data-message-id={message.id}
       className={cn(
-        'group flex gap-3 px-4 py-5',
+        'group flex gap-3 px-4 py-5 transition-colors',
         isUser ? 'bg-transparent' : 'bg-muted/30',
+        highlighted && 'bg-primary/10 ring-1 ring-inset ring-primary/30',
       )}
     >
       <div
@@ -94,10 +101,40 @@ export function MessageBubble({
           </div>
         ) : (
           <>
+            {message.attachments && message.attachments.length > 0 && (
+              <div className="flex flex-wrap gap-1.5">
+                {message.attachments.map((file) => (
+                  <div
+                    key={file.id}
+                    className="flex items-center gap-1.5 rounded-lg border border-border bg-background/60 px-2 py-1 text-xs"
+                  >
+                    {file.kind === 'image' ? (
+                      <ImageIcon className="h-3.5 w-3.5 shrink-0" />
+                    ) : (
+                      <FileText className="h-3.5 w-3.5 shrink-0" />
+                    )}
+                    <span className="truncate max-w-[180px]">{file.name}</span>
+                    <span className="text-muted-foreground">
+                      {formatBytes(file.size)}
+                    </span>
+                    {file.kind === 'image' && file.base64 && (
+                      <img
+                        src={`data:${file.mimeType};base64,${file.base64}`}
+                        alt={file.name}
+                        className="ml-1 h-10 w-10 rounded object-cover"
+                      />
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+
             {isUser ? (
-              <p className="whitespace-pre-wrap text-sm leading-relaxed">
-                {message.content}
-              </p>
+              message.content ? (
+                <p className="whitespace-pre-wrap text-sm leading-relaxed">
+                  {message.content}
+                </p>
+              ) : null
             ) : message.content ? (
               <Markdown content={message.content} />
             ) : null}
@@ -108,13 +145,17 @@ export function MessageBubble({
           </>
         )}
 
-        {!editing && !isStreaming && message.content && (
+        {!editing &&
+          !isStreaming &&
+          (message.content || (message.attachments?.length ?? 0) > 0) && (
           <div className="flex gap-1 opacity-0 transition-opacity group-hover:opacity-100 focus-within:opacity-100">
-            <Button variant="ghost" size="sm" className="h-7 px-2" onClick={copy}>
-              {copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
-              Copy
-            </Button>
-            {isUser && onEdit && (
+            {message.content && (
+              <Button variant="ghost" size="sm" className="h-7 px-2" onClick={copy}>
+                {copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
+                Copy
+              </Button>
+            )}
+            {isUser && onEdit && message.content && (
               <Button
                 variant="ghost"
                 size="sm"

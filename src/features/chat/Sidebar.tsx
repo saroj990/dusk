@@ -23,6 +23,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
+import { ChatSearch } from '@/features/chat/ChatSearch'
 import { useChatStore } from '@/stores/chatStore'
 import { useProjectStore } from '@/stores/projectStore'
 import { useSettingsStore } from '@/stores/settingsStore'
@@ -65,6 +66,7 @@ export function Sidebar({
   const [newProjectName, setNewProjectName] = useState('')
   const [addingProject, setAddingProject] = useState(false)
   const [chatToDelete, setChatToDelete] = useState<Chat | null>(null)
+  const [searchQuery, setSearchQuery] = useState('')
 
   const visibleChats = useMemo(() => {
     if (!activeProjectId) return chats
@@ -147,6 +149,16 @@ export function Sidebar({
 
         {!collapsed && (
           <div className="space-y-3 px-2 pb-2">
+            <ChatSearch
+              chats={chats}
+              query={searchQuery}
+              onQueryChange={setSearchQuery}
+              onSelectHit={(hit) => {
+                selectChat(hit.chatId, hit.messageId)
+                onCloseMobile?.()
+              }}
+            />
+
             <div>
               <div className="mb-1 flex items-center justify-between px-2">
                 <span className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
@@ -253,6 +265,7 @@ export function Sidebar({
 
         <div className="flex-1 overflow-y-auto px-2 pb-2">
           {!collapsed &&
+            !searchQuery.trim() &&
             visibleChats.map((chat) => (
               <div
                 key={chat.id}

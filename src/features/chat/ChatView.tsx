@@ -6,6 +6,8 @@ import { useEffect, useRef } from 'react'
 export function ChatView() {
   const chats = useChatStore((s) => s.chats)
   const activeChatId = useChatStore((s) => s.activeChatId)
+  const focusedMessageId = useChatStore((s) => s.focusedMessageId)
+  const clearFocusedMessage = useChatStore((s) => s.clearFocusedMessage)
   const isStreaming = useChatStore((s) => s.isStreaming)
   const streamingContent = useChatStore((s) => s.streamingContent)
   const error = useChatStore((s) => s.error)
@@ -15,13 +17,24 @@ export function ChatView() {
   const chat = chats.find((c) => c.id === activeChatId) ?? null
 
   useEffect(() => {
+    if (focusedMessageId) return
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }, [chat?.messages, streamingContent, isStreaming])
+  }, [chat?.messages, streamingContent, isStreaming, focusedMessageId])
+
+  useEffect(() => {
+    if (!focusedMessageId) return
+    const el = document.getElementById(`message-${focusedMessageId}`)
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    }
+    const timer = window.setTimeout(() => clearFocusedMessage(), 2500)
+    return () => window.clearTimeout(timer)
+  }, [focusedMessageId, chat?.id, clearFocusedMessage])
 
   if (!chat) {
     return (
       <div className="flex flex-1 flex-col items-center justify-center gap-3 px-6 text-center">
-        <h1 className="text-2xl font-semibold tracking-tight">Ollama Client</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">Dusk</h1>
         <p className="max-w-md text-sm text-muted-foreground">
           A lightweight local AI chat client. Select a model and start a conversation.
         </p>
@@ -34,7 +47,7 @@ export function ChatView() {
       <div className="flex flex-1 flex-col items-center justify-center gap-2 px-6 text-center">
         <h2 className="text-xl font-semibold tracking-tight">New chat</h2>
         <p className="text-sm text-muted-foreground">
-          Ask anything. Responses stream from your local Ollama instance.
+          Ask anything. Responses stream from your local provider.
         </p>
         {error && (
           <p className="mt-2 rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
@@ -67,6 +80,7 @@ export function ChatView() {
                     : message.content,
               }}
               isStreaming={streamingThis}
+              highlighted={focusedMessageId === message.id}
               onRegenerate={
                 message.role === 'assistant'
                   ? () => regenerate(message.id)

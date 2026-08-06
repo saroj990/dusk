@@ -112,7 +112,7 @@ export function App() {
         <ChatView />
 
         <ChatInput
-          onSend={send}
+          onSend={(content, attachments) => void send(content, attachments)}
           onStop={stop}
           isStreaming={isStreaming}
           disabled={!settings.activeModel}

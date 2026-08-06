@@ -100,7 +100,25 @@ export class OpenAICompatibleProvider implements AIProvider {
       signal: request.signal,
       body: JSON.stringify({
         model: request.model,
-        messages: messages.map((m) => ({ role: m.role, content: m.content })),
+        messages: messages.map((m) => {
+          if (!m.images?.length) {
+            return { role: m.role, content: m.content }
+          }
+          return {
+            role: m.role,
+            content: [
+              { type: 'text', text: m.content },
+              ...m.images.map((img) => ({
+                type: 'image_url' as const,
+                image_url: {
+                  url: img.startsWith('data:')
+                    ? img
+                    : `data:image/png;base64,${img}`,
+                },
+              })),
+            ],
+          }
+        }),
         stream: true,
         temperature: request.temperature,
       }),

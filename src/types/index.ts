@@ -1,10 +1,25 @@
 export type Role = 'system' | 'user' | 'assistant'
 
+export type AttachmentKind = 'text' | 'image'
+
+export interface Attachment {
+  id: string
+  name: string
+  mimeType: string
+  kind: AttachmentKind
+  size: number
+  /** Extracted / truncated text for text attachments */
+  text?: string
+  /** Raw base64 (no data: prefix) for image attachments */
+  base64?: string
+}
+
 export interface Message {
   id: string
   role: Role
   content: string
   createdAt: number
+  attachments?: Attachment[]
 }
 
 export interface Chat {
@@ -41,9 +56,16 @@ export interface Model {
   details?: Record<string, unknown>
 }
 
+export interface ProviderMessage {
+  role: Role
+  content: string
+  /** Base64 image payloads (no data: prefix) for vision models */
+  images?: string[]
+}
+
 export interface ChatRequest {
   model: string
-  messages: Array<{ role: Role; content: string }>
+  messages: ProviderMessage[]
   system?: string
   temperature?: number
   signal?: AbortSignal

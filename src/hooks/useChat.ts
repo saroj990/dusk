@@ -1,11 +1,13 @@
 import { useCallback } from 'react'
 import { getProvider } from '@/services/providers/registry'
+import { messageToProviderMessage } from '@/features/chat/attachments'
 import { useChatStore } from '@/stores/chatStore'
 import {
   getActiveProviderConfig,
   useSettingsStore,
 } from '@/stores/settingsStore'
 import { createId } from '@/utils/cn'
+import type { Attachment } from '@/types'
 
 /** Shared across hook instances so Stop works from any caller. */
 let activeAbort: AbortController | null = null
@@ -66,7 +68,7 @@ export function useChat() {
         const provider = getProvider(providerConfig)
         const stream = provider.chat({
           model: settings.activeModel,
-          messages: history.map((m) => ({ role: m.role, content: m.content })),
+          messages: history.map(messageToProviderMessage),
           system: settings.systemPrompt || undefined,
           temperature: settings.temperature,
           signal: controller.signal,
@@ -120,9 +122,9 @@ export function useChat() {
   )
 
   const send = useCallback(
-    async (content: string) => {
+    async (content: string, attachments: Attachment[] = []) => {
       const trimmed = content.trim()
-      if (!trimmed || isStreaming) return
+      if ((!trimmed && attachments.length === 0) || isStreaming) return
 
       const settings = useSettingsStore.getState().settings
       const providerConfig = getActiveProviderConfig(settings)
@@ -130,6 +132,11 @@ export function useChat() {
       if (!settings.activeModel) {
         setError('Select a model first')
         return
+      }
+
+      const hasImages = attachments.some((a) => a.kind === 'image')
+      if (hasImages && providerConfig.type === 'openai-compatible') {
+        // Still send — OpenAI-compatible vision endpoints may accept images.
       }
 
       let chat = getActiveChat()
@@ -141,7 +148,11 @@ export function useChat() {
         )
       }
 
-      await appendMessage(chat.id, { role: 'user', content: trimmed })
+      await appendMessage(chat.id, {
+        role: 'user',
+        content: trimmed,
+        attachments: attachments.length ? attachments : undefined,
+      })
       await runGeneration(chat.id)
     },
     [
@@ -182,8 +193,13 @@ export function useChat() {
       const idx = chat.messages.findIndex((m) => m.id === messageId)
       if (idx < 0) return
 
+      const previous = chat.messages[idx]
       await setMessages(chat.id, chat.messages.slice(0, idx))
-      await appendMessage(chat.id, { role: 'user', content: trimmed })
+      await appendMessage(chat.id, {
+        role: 'user',
+        content: trimmed,
+        attachments: previous.attachments,
+      })
       await runGeneration(chat.id)
     },
     [appendMessage, getActiveChat, isStreaming, runGeneration, setMessages],

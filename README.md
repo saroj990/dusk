@@ -18,6 +18,19 @@ Built with React 19, TypeScript, Vite, Tailwind CSS, and Zustand. No Docker, no 
 - Model management (pull / delete for Ollama, favorites, recent)
 - Projects (group chats)
 
+### Phase 3 (build order)
+1. **Search** (keyword) — done
+2. **File attachments** — v1 (text + images, size limits)
+3. **Desktop packaging** (Tauri)
+4. **Plugin SDK**
+5. **MCP support**
+
+#### Attachment limits (v1)
+- Max **5** files per message
+- Text ≤ **256 KB** (truncated at 80k characters)
+- Images ≤ **4 MB** (png/jpg/gif/webp)
+- Stored on the message in **IndexedDB**; text is injected into the prompt; images sent for vision models
+
 ## Prerequisites
 
 - Node.js 20+
