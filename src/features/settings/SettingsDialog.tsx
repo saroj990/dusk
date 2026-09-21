@@ -23,7 +23,7 @@ import {
   useSettingsStore,
 } from '@/stores/settingsStore'
 import { useModelStore } from '@/stores/modelStore'
-import type { ProviderConfig, ThemeMode } from '@/types'
+import type { ProviderConfig, ThemeMode, WebSearchProvider } from '@/types'
 import { Plus, Trash2 } from 'lucide-react'
 
 interface SettingsDialogProps {
@@ -71,7 +71,7 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-md">
+      <DialogContent className="max-h-[85vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Settings</DialogTitle>
           <DialogDescription>
@@ -240,6 +240,51 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
               <p className="text-xs text-muted-foreground">
                 Active: {provider.name} · {provider.baseUrl}
               </p>
+            )}
+          </section>
+
+          <Separator />
+
+          <section className="space-y-3">
+            <div>
+              <h3 className="text-sm font-medium">Web search</h3>
+              <p className="text-xs text-muted-foreground">
+                Optional. Turn on the globe icon for one message. DuckDuckGo needs no
+                API key (uses the Vite proxy in `npm run dev`). Wikipedia also needs no
+                key. Brave needs an API key.
+              </p>
+            </div>
+            <div className="space-y-2">
+              <Label>Source</Label>
+              <Select
+                value={settings.webSearchProvider}
+                onValueChange={(v) =>
+                  void updateSettings({ webSearchProvider: v as WebSearchProvider })
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="duckduckgo">DuckDuckGo (no key)</SelectItem>
+                  <SelectItem value="wikipedia">Wikipedia (no key)</SelectItem>
+                  <SelectItem value="brave">Brave Search (API key)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            {settings.webSearchProvider === 'brave' && (
+              <div className="space-y-2">
+                <Label htmlFor="braveKey">Brave API key</Label>
+                <Input
+                  id="braveKey"
+                  type="password"
+                  value={settings.webSearchApiKey}
+                  onChange={(e) =>
+                    void updateSettings({ webSearchApiKey: e.target.value })
+                  }
+                  placeholder="BSA..."
+                />
+              </div>
             )}
           </section>
 

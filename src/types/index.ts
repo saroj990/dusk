@@ -14,12 +14,19 @@ export interface Attachment {
   base64?: string
 }
 
+export interface WebSearchHit {
+  title: string
+  url: string
+  snippet: string
+}
+
 export interface Message {
   id: string
   role: Role
   content: string
   createdAt: number
   attachments?: Attachment[]
+  webSearch?: WebSearchHit[]
 }
 
 export interface Chat {
@@ -78,6 +85,8 @@ export interface ChatChunk {
 
 export type ThemeMode = 'system' | 'light' | 'dark'
 
+export type WebSearchProvider = 'duckduckgo' | 'wikipedia' | 'brave'
+
 export interface ProviderConfig {
   id: string
   type: 'ollama' | 'openai-compatible'
@@ -98,6 +107,8 @@ export interface AppSettings {
   favoriteModels: string[]
   recentModels: string[]
   sidebarCollapsed: boolean
+  webSearchProvider: WebSearchProvider
+  webSearchApiKey: string
 }
 
 export const DEFAULT_SETTINGS: AppSettings = {
@@ -110,6 +121,8 @@ export const DEFAULT_SETTINGS: AppSettings = {
   sidebarCollapsed: false,
   favoriteModels: [],
   recentModels: [],
+  webSearchProvider: 'duckduckgo',
+  webSearchApiKey: '',
   providers: [
     {
       id: 'ollama',

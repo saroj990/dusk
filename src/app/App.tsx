@@ -112,11 +112,20 @@ export function App() {
         <ChatView />
 
         <ChatInput
-          onSend={(content, attachments) => void send(content, attachments)}
+          onSend={(content, attachments, options) =>
+            void send(content, attachments, options)
+          }
           onStop={stop}
           isStreaming={isStreaming}
           disabled={!settings.activeModel}
           insertRequest={insertRequest}
+          webSearchProviderLabel={
+            settings.webSearchProvider === 'brave'
+              ? 'Brave'
+              : settings.webSearchProvider === 'wikipedia'
+                ? 'Wikipedia'
+                : 'DuckDuckGo'
+          }
           placeholder={
             settings.activeModel
               ? `Message ${settings.activeModel}…`

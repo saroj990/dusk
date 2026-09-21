@@ -19,6 +19,40 @@ export default defineConfig({
         changeOrigin: true,
         rewrite: (p) => p.replace(/^\/ollama/, ''),
       },
+      '/brave-search': {
+        target: 'https://api.search.brave.com',
+        changeOrigin: true,
+        rewrite: (p) => p.replace(/^\/brave-search/, '/res/v1/web/search'),
+      },
+      '/ddg-search': {
+        target: 'https://api.duckduckgo.com',
+        changeOrigin: true,
+        rewrite: (p) => p.replace(/^\/ddg-search/, ''),
+      },
+      '/ddg-html': {
+        target: 'https://html.duckduckgo.com',
+        changeOrigin: true,
+        rewrite: (p) => p.replace(/^\/ddg-html/, '/html'),
+      },
+    },
+  },
+  preview: {
+    proxy: {
+      '/brave-search': {
+        target: 'https://api.search.brave.com',
+        changeOrigin: true,
+        rewrite: (p) => p.replace(/^\/brave-search/, '/res/v1/web/search'),
+      },
+      '/ddg-search': {
+        target: 'https://api.duckduckgo.com',
+        changeOrigin: true,
+        rewrite: (p) => p.replace(/^\/ddg-search/, ''),
+      },
+      '/ddg-html': {
+        target: 'https://html.duckduckgo.com',
+        changeOrigin: true,
+        rewrite: (p) => p.replace(/^\/ddg-html/, '/html'),
+      },
     },
   },
 })

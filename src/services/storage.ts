@@ -106,6 +106,8 @@ export async function loadSettings(): Promise<AppSettings> {
     favoriteModels: stored.favoriteModels ?? [],
     recentModels: stored.recentModels ?? [],
     activeProjectId: stored.activeProjectId ?? null,
+    webSearchProvider: stored.webSearchProvider ?? DEFAULT_SETTINGS.webSearchProvider,
+    webSearchApiKey: stored.webSearchApiKey ?? '',
   }
 }
 

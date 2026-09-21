@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type KeyboardEvent } from 'react'
-import { ArrowUp, FileText, ImageIcon, Paperclip, Square, X } from 'lucide-react'
+import { ArrowUp, FileText, Globe, ImageIcon, Paperclip, Square, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
   ATTACHMENT_CONSTRAINTS,
@@ -15,12 +15,13 @@ export interface InsertRequest {
 }
 
 interface ChatInputProps {
-  onSend: (content: string, attachments: Attachment[]) => void
+  onSend: (content: string, attachments: Attachment[], options?: { webSearch?: boolean }) => void
   onStop: () => void
   isStreaming: boolean
   disabled?: boolean
   placeholder?: string
   insertRequest?: InsertRequest | null
+  webSearchProviderLabel?: string
 }
 
 export function ChatInput({
@@ -30,11 +31,13 @@ export function ChatInput({
   disabled,
   placeholder = 'Message…',
   insertRequest,
+  webSearchProviderLabel = 'DuckDuckGo',
 }: ChatInputProps) {
   const [value, setValue] = useState('')
   const [attachments, setAttachments] = useState<Attachment[]>([])
   const [attachError, setAttachError] = useState<string | null>(null)
   const [reading, setReading] = useState(false)
+  const [webSearch, setWebSearch] = useState(false)
   const ref = useRef<HTMLTextAreaElement>(null)
   const fileRef = useRef<HTMLInputElement>(null)
 
@@ -79,10 +82,11 @@ export function ChatInput({
     if ((!value.trim() && attachments.length === 0) || isStreaming || disabled) {
       return
     }
-    onSend(value, attachments)
+    onSend(value, attachments, { webSearch })
     setValue('')
     setAttachments([])
     setAttachError(null)
+    setWebSearch(false)
     if (ref.current) {
       ref.current.style.height = 'auto'
     }
@@ -170,6 +174,23 @@ export function ChatInput({
           >
             <Paperclip className="h-4 w-4" />
           </Button>
+          <Button
+            type="button"
+            size="icon"
+            variant={webSearch ? 'secondary' : 'ghost'}
+            className="shrink-0 rounded-xl"
+            disabled={disabled || isStreaming}
+            onClick={() => setWebSearch((v) => !v)}
+            aria-label={webSearch ? 'Disable web search' : 'Enable web search'}
+            aria-pressed={webSearch}
+            title={
+              webSearch
+                ? `Web search on (${webSearchProviderLabel}) — click to turn off`
+                : `Search ${webSearchProviderLabel} for this message`
+            }
+          >
+            <Globe className="h-4 w-4" />
+          </Button>
 
           <textarea
             ref={ref}
@@ -215,7 +236,8 @@ export function ChatInput({
         </p>
       )}
       <p className="mx-auto mt-2 max-w-3xl text-center text-[11px] text-muted-foreground">
-        Enter to send · Shift+Enter for newline · {describeAttachmentLimits()}
+        Enter to send · Shift+Enter for newline · Globe = web search this message ·{' '}
+        {describeAttachmentLimits()}
       </p>
     </div>
   )

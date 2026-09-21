@@ -3,6 +3,7 @@ import {
   Check,
   Copy,
   FileText,
+  Globe,
   ImageIcon,
   Pencil,
   RefreshCw,
@@ -126,6 +127,32 @@ export function MessageBubble({
                     )}
                   </div>
                 ))}
+              </div>
+            )}
+
+            {message.webSearch && message.webSearch.length > 0 && (
+              <div className="space-y-1 rounded-lg border border-border bg-muted/30 px-2 py-2">
+                <div className="flex items-center gap-1 text-[11px] font-medium text-muted-foreground">
+                  <Globe className="h-3 w-3" />
+                  Sources
+                </div>
+                <ul className="space-y-1">
+                  {message.webSearch.map((hit) => (
+                    <li key={hit.url} className="text-[11px] leading-snug">
+                      <a
+                        href={hit.url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="font-medium underline-offset-2 hover:underline"
+                      >
+                        {hit.title}
+                      </a>
+                      {hit.snippet ? (
+                        <span className="block text-muted-foreground">{hit.snippet}</span>
+                      ) : null}
+                    </li>
+                  ))}
+                </ul>
               </div>
             )}
 

@@ -149,7 +149,8 @@ On every generation Dusk:
 2. Optionally prepends the Settings **system prompt**
 3. Folds **text attachments** into message `content`
 4. Attaches **images** on messages that have them
-5. `POST`s that full `messages` array to the provider
+5. Optionally runs **web search** and injects snippets + URLs
+6. `POST`s that full `messages` array to the provider
 
 So: **the frontend builds and sends context every time.** Old attachments stay on their original messages and are resent on later turns in that chat.
 
@@ -172,6 +173,18 @@ There is currently **no** context-window trimming, summarization, or cross-chat 
 5. On send: text injected into the prompt; images sent for vision models (e.g. `llava`)
 
 Document parsing is **client-side**. The model only receives prepared text / image payloads — not raw PDF/binary formats (PDF not supported in v1).
+
+### Web search (optional)
+
+**No Dusk backend.** The browser fetches sources, then the app injects snippets into the LLM request.
+
+| Source | Backend? | Notes |
+| --- | --- | --- |
+| DuckDuckGo (default) | No | No API key; Vite **dev proxy** (restart `npm run dev`) |
+| Wikipedia | No | CORS-friendly; encyclopedia, not live news |
+| Brave Search | No Dusk server | Needs your API key; Vite **dev proxy** avoids browser CORS |
+
+Usage: click the **globe** on a message before send. Sources show on the user bubble and are stored with the chat.
 
 ### Search
 

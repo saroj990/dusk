@@ -1,4 +1,5 @@
 import type { Attachment, Message, ProviderMessage } from '@/types'
+import { formatWebSearchForPrompt } from '@/services/webSearch'
 import { createId, formatBytes } from '@/utils/cn'
 
 export const ATTACHMENT_CONSTRAINTS = {
@@ -190,6 +191,10 @@ export function messageToProviderMessage(message: Message): ProviderMessage {
     if (file.kind === 'text' && file.text) {
       content = `${content}\n\n[Attached file: ${file.name}]\n\`\`\`\n${file.text}\n\`\`\``
     }
+  }
+
+  if (message.webSearch?.length) {
+    content = `${content}\n\n${formatWebSearchForPrompt(message.webSearch)}`
   }
 
   const images = attachments

@@ -7,7 +7,8 @@ import {
   useSettingsStore,
 } from '@/stores/settingsStore'
 import { createId } from '@/utils/cn'
-import type { Attachment } from '@/types'
+import type { Attachment, WebSearchHit } from '@/types'
+import { searchWeb } from '@/services/webSearch'
 
 /** Shared across hook instances so Stop works from any caller. */
 let activeAbort: AbortController | null = null
@@ -122,7 +123,11 @@ export function useChat() {
   )
 
   const send = useCallback(
-    async (content: string, attachments: Attachment[] = []) => {
+    async (
+      content: string,
+      attachments: Attachment[] = [],
+      options?: { webSearch?: boolean },
+    ) => {
       const trimmed = content.trim()
       if ((!trimmed && attachments.length === 0) || isStreaming) return
 
@@ -134,11 +139,6 @@ export function useChat() {
         return
       }
 
-      const hasImages = attachments.some((a) => a.kind === 'image')
-      if (hasImages && providerConfig.type === 'openai-compatible') {
-        // Still send — OpenAI-compatible vision endpoints may accept images.
-      }
-
       let chat = getActiveChat()
       if (!chat) {
         chat = await createChat(
@@ -148,10 +148,26 @@ export function useChat() {
         )
       }
 
+      let webSearch: WebSearchHit[] | undefined
+      if (options?.webSearch && trimmed) {
+        try {
+          webSearch = await searchWeb(trimmed, settings)
+          if (!webSearch.length) {
+            setError('Web search returned no results; sending your question anyway.')
+          } else {
+            setError(null)
+          }
+        } catch (err) {
+          setError(err instanceof Error ? err.message : 'Web search failed')
+          return
+        }
+      }
+
       await appendMessage(chat.id, {
         role: 'user',
         content: trimmed,
         attachments: attachments.length ? attachments : undefined,
+        webSearch: webSearch?.length ? webSearch : undefined,
       })
       await runGeneration(chat.id)
     },
@@ -199,6 +215,7 @@ export function useChat() {
         role: 'user',
         content: trimmed,
         attachments: previous.attachments,
+        webSearch: previous.webSearch,
       })
       await runGeneration(chat.id)
     },

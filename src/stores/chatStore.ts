@@ -146,6 +146,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
       content: message.content,
       createdAt: Date.now(),
       attachments: message.attachments,
+      webSearch: message.webSearch,
     }
 
     const isFirstUser = chat.messages.length === 0 && full.role === 'user'
