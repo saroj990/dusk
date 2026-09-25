@@ -79,8 +79,11 @@ export function useChat() {
           if (chunk.content) {
             accumulated += chunk.content
             setStreamingContent(accumulated)
-            await updateMessage(chatId, assistantId, accumulated)
           }
+        }
+
+        if (accumulated) {
+          await updateMessage(chatId, assistantId, accumulated)
         }
       } catch (err) {
         if (err instanceof DOMException && err.name === 'AbortError') {
@@ -92,6 +95,8 @@ export function useChat() {
                 fresh.messages.filter((m) => m.id !== assistantId),
               )
             }
+          } else {
+            await updateMessage(chatId, assistantId, accumulated)
           }
         } else {
           const message = err instanceof Error ? err.message : 'Generation failed'
@@ -104,6 +109,8 @@ export function useChat() {
                 fresh.messages.filter((m) => m.id !== assistantId),
               )
             }
+          } else {
+            await updateMessage(chatId, assistantId, accumulated)
           }
         }
       } finally {
