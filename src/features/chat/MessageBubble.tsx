@@ -163,7 +163,13 @@ export function MessageBubble({
                 </p>
               ) : null
             ) : message.content ? (
-              <Markdown content={message.content} />
+              isStreaming ? (
+                <pre className="whitespace-pre-wrap font-sans text-sm leading-relaxed overflow-x-auto">
+                  {message.content}
+                </pre>
+              ) : (
+                <Markdown content={message.content} />
+              )
             ) : null}
 
             {isStreaming && (
