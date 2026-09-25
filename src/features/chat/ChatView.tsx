@@ -1,7 +1,13 @@
 import { useChatStore } from '@/stores/chatStore'
 import { useChat } from '@/hooks/useChat'
 import { MessageBubble } from './MessageBubble'
-import { useEffect, useRef } from 'react'
+import {
+  MESSAGE_COLLAPSE_THRESHOLD,
+  MESSAGE_FULL_RENDER_RECENT,
+  MESSAGE_KEEP_RECENT,
+} from './messageCollapse'
+import { Button } from '@/components/ui/button'
+import { useEffect, useMemo, useRef, useState } from 'react'
 
 export function ChatView() {
   const chats = useChatStore((s) => s.chats)
@@ -13,13 +19,47 @@ export function ChatView() {
   const error = useChatStore((s) => s.error)
   const { regenerate, editAndResend } = useChat()
   const bottomRef = useRef<HTMLDivElement>(null)
+  const [showEarlierMessages, setShowEarlierMessages] = useState(false)
 
   const chat = chats.find((c) => c.id === activeChatId) ?? null
 
   useEffect(() => {
+    setShowEarlierMessages(false)
+  }, [chat?.id])
+
+  const collapseEarlier = Boolean(
+    chat && chat.messages.length > MESSAGE_COLLAPSE_THRESHOLD && !showEarlierMessages,
+  )
+  const hiddenEarlierCount =
+    chat && collapseEarlier ? chat.messages.length - MESSAGE_KEEP_RECENT : 0
+
+  const messageCount = chat?.messages.length ?? 0
+  const messages = chat?.messages
+
+  const visibleMessages = useMemo(() => {
+    if (!messages) return []
+    if (!collapseEarlier) return messages
+    return messages.slice(-MESSAGE_KEEP_RECENT)
+  }, [messages, collapseEarlier])
+
+  const visibleMessageKey = useMemo(
+    () => visibleMessages.map((m) => m.id).join(','),
+    [visibleMessages],
+  )
+
+  useEffect(() => {
+    if (!focusedMessageId || !activeChatId) return
+    const current = useChatStore.getState().chats.find((c) => c.id === activeChatId)
+    if (!current || current.messages.length <= MESSAGE_COLLAPSE_THRESHOLD) return
+    const idx = current.messages.findIndex((m) => m.id === focusedMessageId)
+    if (idx < 0 || idx >= current.messages.length - MESSAGE_KEEP_RECENT) return
+    setShowEarlierMessages(true)
+  }, [focusedMessageId, activeChatId, messageCount])
+
+  useEffect(() => {
     if (focusedMessageId) return
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }, [chat?.messages, streamingContent, isStreaming, focusedMessageId])
+  }, [visibleMessageKey, streamingContent, isStreaming, focusedMessageId])
 
   useEffect(() => {
     if (!focusedMessageId) return
@@ -29,7 +69,7 @@ export function ChatView() {
     }
     const timer = window.setTimeout(() => clearFocusedMessage(), 2500)
     return () => window.clearTimeout(timer)
-  }, [focusedMessageId, chat?.id, clearFocusedMessage])
+  }, [focusedMessageId, chat?.id, clearFocusedMessage, showEarlierMessages])
 
   if (!chat) {
     return (
@@ -63,11 +103,30 @@ export function ChatView() {
   return (
     <div className="flex-1 overflow-y-auto">
       <div className="mx-auto max-w-3xl">
-        {chat.messages.map((message) => {
+        {hiddenEarlierCount > 0 && (
+          <div className="border-b border-border px-4 py-3">
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              className="w-full sm:w-auto"
+              onClick={() => setShowEarlierMessages(true)}
+            >
+              Show {hiddenEarlierCount} earlier message
+              {hiddenEarlierCount === 1 ? '' : 's'}
+            </Button>
+          </div>
+        )}
+
+        {visibleMessages.map((message, index) => {
           const streamingThis =
             isStreaming &&
             message.role === 'assistant' &&
             message.id === lastAssistant?.id
+
+          const startCompact =
+            !streamingThis &&
+            visibleMessages.length - index > MESSAGE_FULL_RENDER_RECENT
 
           return (
             <MessageBubble
@@ -81,6 +140,7 @@ export function ChatView() {
               }}
               isStreaming={streamingThis}
               highlighted={focusedMessageId === message.id}
+              startCompact={startCompact}
               onRegenerate={
                 message.role === 'assistant'
                   ? () => regenerate(message.id)

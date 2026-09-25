@@ -14,12 +14,15 @@ import type { Message } from '@/types'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { Markdown } from './Markdown'
+import { previewMessageText } from './messageCollapse'
 import { cn, formatBytes } from '@/utils/cn'
 
 interface MessageBubbleProps {
   message: Message
   isStreaming?: boolean
   highlighted?: boolean
+  /** When true, show a one-line preview until the user expands (saves DOM / highlight cost). */
+  startCompact?: boolean
   onRegenerate?: () => void
   onEdit?: (content: string) => void
 }
@@ -28,17 +31,30 @@ export function MessageBubble({
   message,
   isStreaming,
   highlighted,
+  startCompact = false,
   onRegenerate,
   onEdit,
 }: MessageBubbleProps) {
   const [copied, setCopied] = useState(false)
   const [editing, setEditing] = useState(false)
   const [draft, setDraft] = useState(message.content)
+  /** User opted in to full render for a compact-eligible message. */
+  const [userExpanded, setUserExpanded] = useState(false)
   const isUser = message.role === 'user'
+  const compact =
+    startCompact &&
+    !userExpanded &&
+    !highlighted &&
+    !isStreaming &&
+    !editing
 
   useEffect(() => {
     setDraft(message.content)
   }, [message.content])
+
+  useEffect(() => {
+    setUserExpanded(false)
+  }, [message.id])
 
   const copy = async () => {
     await navigator.clipboard.writeText(message.content)
@@ -70,7 +86,22 @@ export function MessageBubble({
           {isUser ? 'You' : 'Assistant'}
         </div>
 
-        {editing ? (
+        {compact ? (
+          <div className="space-y-2 rounded-lg border border-border/80 bg-background/40 px-3 py-2">
+            <p className="text-sm text-muted-foreground">
+              {previewMessageText(message.content || message.attachments?.[0]?.name || 'Message')}
+            </p>
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              className="h-7"
+              onClick={() => setUserExpanded(true)}
+            >
+              Show full message
+            </Button>
+          </div>
+        ) : editing ? (
           <div className="space-y-2">
             <Textarea
               value={draft}
@@ -180,6 +211,7 @@ export function MessageBubble({
 
         {!editing &&
           !isStreaming &&
+          !compact &&
           (message.content || (message.attachments?.length ?? 0) > 0) && (
           <div className="flex gap-1 opacity-0 transition-opacity group-hover:opacity-100 focus-within:opacity-100">
             {message.content && (
