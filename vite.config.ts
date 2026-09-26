@@ -5,6 +5,17 @@ import tailwindcss from '@tailwindcss/vite'
 
 export default defineConfig({
   plugins: [react(), tailwindcss()],
+  optimizeDeps: {
+    include: [
+      'react',
+      'react-dom',
+      'react-markdown',
+      'remark-gfm',
+      'rehype-highlight',
+      'highlight.js/lib/common',
+      'mermaid',
+    ],
+  },
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
