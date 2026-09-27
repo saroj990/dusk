@@ -1,0 +1,38 @@
+---
+description: How to use git in this repo — no Cursor attribution, commit only when asked
+alwaysApply: true
+---
+
+# Git
+
+- Commit **only** when the user explicitly asks.
+- Do **not** push unless the user asks.
+- Never skip hooks (`--no-verify`) unless the user asks.
+- Never `git config` changes.
+- Never destructive git (`push --force`, `reset --hard`) unless the user explicitly asks. Warn before force-pushing `main`/`master`.
+
+## Commit messages
+
+- Write a short subject (and body if needed) that describes **why**.
+- Match this repo’s style (plain English).
+- **Do not** mention Cursor, agents, Copilot, or AI.
+- **Do not** add trailers such as:
+
+```
+Co-authored-by: Cursor <cursoragent@cursor.com>
+```
+
+Cursor’s `git commit` wrapper often appends that trailer automatically. If the user wants **no Cursor trace**:
+
+1. Do not rely on `git commit` / `git commit --amend` for the final message.
+2. Create or rewrite the commit with `git commit-tree` + `git reset --soft` (same tree/parent/author), using only the approved message.
+
+## Amend
+
+Only amend when the user asks **and** HEAD is our unpushed commit. If Cursor re-injects `Co-authored-by` on amend, strip it with `commit-tree` as above.
+
+## Staging
+
+- Do not commit secrets (`.env`, keys).
+- Do not commit `Cursor_Prompt_Lightweight_AI_Client.md` (gitignored).
+- Do not use `git add -i` or other interactive git.

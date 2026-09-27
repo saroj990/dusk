@@ -1,11 +1,14 @@
 import { useCallback } from 'react'
 import { getProvider } from '@/services/providers/registry'
+import { messageToProviderMessage } from '@/features/chat/attachments'
 import { useChatStore } from '@/stores/chatStore'
 import {
   getActiveProviderConfig,
   useSettingsStore,
 } from '@/stores/settingsStore'
 import { createId } from '@/utils/cn'
+import type { Attachment, WebSearchHit } from '@/types'
+import { searchWeb } from '@/services/webSearch'
 
 /** Shared across hook instances so Stop works from any caller. */
 let activeAbort: AbortController | null = null
@@ -66,7 +69,7 @@ export function useChat() {
         const provider = getProvider(providerConfig)
         const stream = provider.chat({
           model: settings.activeModel,
-          messages: history.map((m) => ({ role: m.role, content: m.content })),
+          messages: history.map(messageToProviderMessage),
           system: settings.systemPrompt || undefined,
           temperature: settings.temperature,
           signal: controller.signal,
@@ -76,8 +79,11 @@ export function useChat() {
           if (chunk.content) {
             accumulated += chunk.content
             setStreamingContent(accumulated)
-            await updateMessage(chatId, assistantId, accumulated)
           }
+        }
+
+        if (accumulated) {
+          await updateMessage(chatId, assistantId, accumulated)
         }
       } catch (err) {
         if (err instanceof DOMException && err.name === 'AbortError') {
@@ -89,6 +95,8 @@ export function useChat() {
                 fresh.messages.filter((m) => m.id !== assistantId),
               )
             }
+          } else {
+            await updateMessage(chatId, assistantId, accumulated)
           }
         } else {
           const message = err instanceof Error ? err.message : 'Generation failed'
@@ -101,6 +109,8 @@ export function useChat() {
                 fresh.messages.filter((m) => m.id !== assistantId),
               )
             }
+          } else {
+            await updateMessage(chatId, assistantId, accumulated)
           }
         }
       } finally {
@@ -120,9 +130,13 @@ export function useChat() {
   )
 
   const send = useCallback(
-    async (content: string) => {
+    async (
+      content: string,
+      attachments: Attachment[] = [],
+      options?: { webSearch?: boolean },
+    ) => {
       const trimmed = content.trim()
-      if (!trimmed || isStreaming) return
+      if ((!trimmed && attachments.length === 0) || isStreaming) return
 
       const settings = useSettingsStore.getState().settings
       const providerConfig = getActiveProviderConfig(settings)
@@ -134,10 +148,34 @@ export function useChat() {
 
       let chat = getActiveChat()
       if (!chat) {
-        chat = await createChat(providerConfig.id, settings.activeModel)
+        chat = await createChat(
+          providerConfig.id,
+          settings.activeModel,
+          settings.activeProjectId,
+        )
       }
 
-      await appendMessage(chat.id, { role: 'user', content: trimmed })
+      let webSearch: WebSearchHit[] | undefined
+      if (options?.webSearch && trimmed) {
+        try {
+          webSearch = await searchWeb(trimmed, settings)
+          if (!webSearch.length) {
+            setError('Web search returned no results; sending your question anyway.')
+          } else {
+            setError(null)
+          }
+        } catch (err) {
+          setError(err instanceof Error ? err.message : 'Web search failed')
+          return
+        }
+      }
+
+      await appendMessage(chat.id, {
+        role: 'user',
+        content: trimmed,
+        attachments: attachments.length ? attachments : undefined,
+        webSearch: webSearch?.length ? webSearch : undefined,
+      })
       await runGeneration(chat.id)
     },
     [
@@ -178,8 +216,14 @@ export function useChat() {
       const idx = chat.messages.findIndex((m) => m.id === messageId)
       if (idx < 0) return
 
+      const previous = chat.messages[idx]
       await setMessages(chat.id, chat.messages.slice(0, idx))
-      await appendMessage(chat.id, { role: 'user', content: trimmed })
+      await appendMessage(chat.id, {
+        role: 'user',
+        content: trimmed,
+        attachments: previous.attachments,
+        webSearch: previous.webSearch,
+      })
       await runGeneration(chat.id)
     },
     [appendMessage, getActiveChat, isStreaming, runGeneration, setMessages],

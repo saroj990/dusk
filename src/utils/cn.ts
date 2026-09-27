@@ -29,3 +29,15 @@ export function truncate(text: string, max = 48): string {
   if (cleaned.length <= max) return cleaned
   return `${cleaned.slice(0, max - 1)}…`
 }
+
+export function formatBytes(bytes?: number): string {
+  if (bytes === undefined || bytes <= 0) return ''
+  const units = ['B', 'KB', 'MB', 'GB', 'TB']
+  let value = bytes
+  let unit = 0
+  while (value >= 1024 && unit < units.length - 1) {
+    value /= 1024
+    unit += 1
+  }
+  return `${value.toFixed(value >= 10 || unit === 0 ? 0 : 1)} ${units[unit]}`
+}

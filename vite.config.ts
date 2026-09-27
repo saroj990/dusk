@@ -5,6 +5,17 @@ import tailwindcss from '@tailwindcss/vite'
 
 export default defineConfig({
   plugins: [react(), tailwindcss()],
+  optimizeDeps: {
+    include: [
+      'react',
+      'react-dom',
+      'react-markdown',
+      'remark-gfm',
+      'rehype-highlight',
+      'highlight.js/lib/common',
+      'mermaid',
+    ],
+  },
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
@@ -18,6 +29,40 @@ export default defineConfig({
         target: 'http://localhost:11434',
         changeOrigin: true,
         rewrite: (p) => p.replace(/^\/ollama/, ''),
+      },
+      '/brave-search': {
+        target: 'https://api.search.brave.com',
+        changeOrigin: true,
+        rewrite: (p) => p.replace(/^\/brave-search/, '/res/v1/web/search'),
+      },
+      '/ddg-search': {
+        target: 'https://api.duckduckgo.com',
+        changeOrigin: true,
+        rewrite: (p) => p.replace(/^\/ddg-search/, ''),
+      },
+      '/ddg-html': {
+        target: 'https://html.duckduckgo.com',
+        changeOrigin: true,
+        rewrite: (p) => p.replace(/^\/ddg-html/, '/html'),
+      },
+    },
+  },
+  preview: {
+    proxy: {
+      '/brave-search': {
+        target: 'https://api.search.brave.com',
+        changeOrigin: true,
+        rewrite: (p) => p.replace(/^\/brave-search/, '/res/v1/web/search'),
+      },
+      '/ddg-search': {
+        target: 'https://api.duckduckgo.com',
+        changeOrigin: true,
+        rewrite: (p) => p.replace(/^\/ddg-search/, ''),
+      },
+      '/ddg-html': {
+        target: 'https://html.duckduckgo.com',
+        changeOrigin: true,
+        rewrite: (p) => p.replace(/^\/ddg-html/, '/html'),
       },
     },
   },
