@@ -1,7 +1,16 @@
 import { useChatStore } from '@/stores/chatStore'
 import { useChat } from '@/hooks/useChat'
 import { MessageBubble } from './MessageBubble'
-import { useEffect, useRef } from 'react'
+import { Button } from '@/components/ui/button'
+import { ArrowDown } from 'lucide-react'
+import { useCallback, useEffect, useRef, useState } from 'react'
+
+/** Pixels from the bottom still treated as "following" the stream. */
+const NEAR_BOTTOM_PX = 80
+
+function distanceFromBottom(el: HTMLElement): number {
+  return el.scrollHeight - el.scrollTop - el.clientHeight
+}
 
 export function ChatView() {
   const chats = useChatStore((s) => s.chats)
@@ -10,13 +19,53 @@ export function ChatView() {
   const streamingContent = useChatStore((s) => s.streamingContent)
   const error = useChatStore((s) => s.error)
   const { regenerate, editAndResend } = useChat()
-  const bottomRef = useRef<HTMLDivElement>(null)
+  const scrollRef = useRef<HTMLDivElement>(null)
+  const stickToBottomRef = useRef(true)
+  const [showJumpToLatest, setShowJumpToLatest] = useState(false)
 
   const chat = chats.find((c) => c.id === activeChatId) ?? null
 
+  const scrollToBottom = useCallback((behavior: ScrollBehavior) => {
+    const el = scrollRef.current
+    if (!el) return
+    el.scrollTo({ top: el.scrollHeight, behavior })
+  }, [])
+
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }, [chat?.messages, streamingContent, isStreaming])
+    stickToBottomRef.current = true
+    setShowJumpToLatest(false)
+  }, [chat?.id])
+
+  useEffect(() => {
+    const el = scrollRef.current
+    if (!el) return
+
+    const onScroll = () => {
+      const near = distanceFromBottom(el) <= NEAR_BOTTOM_PX
+      if (near !== stickToBottomRef.current) {
+        stickToBottomRef.current = near
+        setShowJumpToLatest(!near && useChatStore.getState().isStreaming)
+      }
+    }
+
+    el.addEventListener('scroll', onScroll, { passive: true })
+    return () => el.removeEventListener('scroll', onScroll)
+  }, [chat?.id])
+
+  useEffect(() => {
+    setShowJumpToLatest(!stickToBottomRef.current && isStreaming)
+  }, [isStreaming])
+
+  useEffect(() => {
+    if (!stickToBottomRef.current) return
+    scrollToBottom(isStreaming ? 'auto' : 'smooth')
+  }, [chat?.messages, isStreaming, scrollToBottom, streamingContent])
+
+  const jumpToLatest = () => {
+    stickToBottomRef.current = true
+    setShowJumpToLatest(false)
+    scrollToBottom('smooth')
+  }
 
   if (!chat) {
     return (
@@ -48,47 +97,64 @@ export function ChatView() {
   const lastAssistant = [...chat.messages].reverse().find((m) => m.role === 'assistant')
 
   return (
-    <div className="flex-1 overflow-y-auto">
-      <div className="mx-auto max-w-3xl">
-        {chat.messages.map((message) => {
-          const streamingThis =
-            isStreaming &&
-            message.role === 'assistant' &&
-            message.id === lastAssistant?.id
+    <div className="relative flex min-h-0 flex-1 flex-col">
+      <div ref={scrollRef} className="flex-1 overflow-y-auto">
+        <div className="mx-auto max-w-3xl">
+          {chat.messages.map((message) => {
+            const streamingThis =
+              isStreaming &&
+              message.role === 'assistant' &&
+              message.id === lastAssistant?.id
 
-          return (
-            <MessageBubble
-              key={message.id}
-              message={{
-                ...message,
-                content:
-                  streamingThis && streamingContent
-                    ? streamingContent
-                    : message.content,
-              }}
-              isStreaming={streamingThis}
-              onRegenerate={
-                message.role === 'assistant'
-                  ? () => regenerate(message.id)
-                  : undefined
-              }
-              onEdit={
-                message.role === 'user'
-                  ? (content) => editAndResend(message.id, content)
-                  : undefined
-              }
-            />
-          )
-        })}
-        {error && (
-          <div className="px-4 py-3">
-            <p className="rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
-              {error}
-            </p>
-          </div>
-        )}
-        <div ref={bottomRef} />
+            return (
+              <MessageBubble
+                key={message.id}
+                message={{
+                  ...message,
+                  content:
+                    streamingThis && streamingContent
+                      ? streamingContent
+                      : message.content,
+                }}
+                isStreaming={streamingThis}
+                onRegenerate={
+                  message.role === 'assistant'
+                    ? () => regenerate(message.id)
+                    : undefined
+                }
+                onEdit={
+                  message.role === 'user'
+                    ? (content) => editAndResend(message.id, content)
+                    : undefined
+                }
+              />
+            )
+          })}
+          {error && (
+            <div className="px-4 py-3">
+              <p className="rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+                {error}
+              </p>
+            </div>
+          )}
+          <div aria-hidden className="h-1" />
+        </div>
       </div>
+
+      {showJumpToLatest && (
+        <div className="pointer-events-none absolute bottom-3 left-0 right-0 flex justify-center">
+          <Button
+            type="button"
+            size="sm"
+            variant="secondary"
+            className="pointer-events-auto gap-1.5 shadow-md"
+            onClick={jumpToLatest}
+          >
+            <ArrowDown className="h-4 w-4" />
+            Jump to latest
+          </Button>
+        </div>
+      )}
     </div>
   )
 }
