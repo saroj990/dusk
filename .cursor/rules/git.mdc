@@ -8,7 +8,7 @@ alwaysApply: true
 - Commit **only** when the user explicitly asks.
 - Do **not** push unless the user asks.
 - Never skip hooks (`--no-verify`) unless the user asks.
-- Never `git config` changes.
+- Follow the `git-identity` skill for commit author identity; never override `user.name` / `user.email`.
 - Never destructive git (`push --force`, `reset --hard`) unless the user explicitly asks. Warn before force-pushing `main`/`master`.
 
 ## Commit messages

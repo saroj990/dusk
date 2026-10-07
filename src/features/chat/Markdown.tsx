@@ -90,7 +90,7 @@ interface MarkdownProps {
 
 export function Markdown({ content }: MarkdownProps) {
   return (
-    <div className="markdown prose prose-sm dark:prose-invert max-w-none">
+    <div className="markdown assistant-content max-w-none">
       <ReactMarkdown
         remarkPlugins={[remarkGfm]}
         rehypePlugins={[[rehypeHighlight, { plainText: ['mermaid'] }]]}

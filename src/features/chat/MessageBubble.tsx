@@ -195,7 +195,7 @@ export function MessageBubble({
               ) : null
             ) : message.content ? (
               isStreaming ? (
-                <pre className="whitespace-pre-wrap font-sans text-sm leading-relaxed overflow-x-auto">
+                <pre className="assistant-content whitespace-pre-wrap overflow-x-auto">
                   {message.content}
                 </pre>
               ) : (
