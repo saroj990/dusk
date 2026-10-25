@@ -1,6 +1,6 @@
 import { useCallback } from 'react'
 import { getProvider } from '@/services/providers/registry'
-import { messageToProviderMessage } from '@/features/chat/attachments'
+import { buildProviderMessages } from '@/features/chat/contextWindow'
 import { useChatStore } from '@/stores/chatStore'
 import {
   getActiveProviderConfig,
@@ -63,20 +63,24 @@ export function useChat() {
 
       let accumulated = ''
       let streamStartedAt: number | null = null
+      let ttftMs: number | undefined
 
       const persistAssistant = async (content: string) => {
         const generationMs =
           streamStartedAt !== null
             ? Math.round(performance.now() - streamStartedAt)
             : undefined
-        await updateMessage(chatId, assistantId, content, generationMs)
+        await updateMessage(chatId, assistantId, content, {
+          generationMs,
+          ttftMs,
+        })
       }
 
       try {
         const provider = getProvider(providerConfig)
         const stream = provider.chat({
           model: settings.activeModel,
-          messages: history.map(messageToProviderMessage),
+          messages: buildProviderMessages(history),
           system: settings.systemPrompt || undefined,
           temperature: settings.temperature,
           signal: controller.signal,
@@ -86,6 +90,9 @@ export function useChat() {
 
         for await (const chunk of stream) {
           if (chunk.content) {
+            if (ttftMs === undefined && streamStartedAt !== null) {
+              ttftMs = Math.round(performance.now() - streamStartedAt)
+            }
             accumulated += chunk.content
             setStreamingContent(accumulated)
           }

@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import type { Chat, Message } from '@/types'
+import type { Chat, Message, MessageGenerationStats } from '@/types'
 import * as storage from '@/services/storage'
 import { createId, truncate } from '@/utils/cn'
 
@@ -31,7 +31,7 @@ interface ChatState {
     chatId: string,
     messageId: string,
     content: string,
-    generationMs?: number,
+    stats?: MessageGenerationStats,
   ) => Promise<void>
   setMessages: (chatId: string, messages: Message[]) => Promise<void>
   setStreaming: (isStreaming: boolean) => void
@@ -173,7 +173,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
     return full
   },
 
-  updateMessage: async (chatId, messageId, content, generationMs) => {
+  updateMessage: async (chatId, messageId, content, stats) => {
     const chat = get().chats.find((c) => c.id === chatId)
     if (!chat) return
 
@@ -184,7 +184,10 @@ export const useChatStore = create<ChatState>((set, get) => ({
           ? {
               ...m,
               content,
-              ...(generationMs !== undefined ? { generationMs } : {}),
+              ...(stats?.generationMs !== undefined
+                ? { generationMs: stats.generationMs }
+                : {}),
+              ...(stats?.ttftMs !== undefined ? { ttftMs: stats.ttftMs } : {}),
             }
           : m,
       ),

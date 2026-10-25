@@ -182,24 +182,53 @@ export async function filesToAttachments(
   return { attachments, errors }
 }
 
+export interface ProviderMessageOptions {
+  /** Inject web search snippets (only needed on the latest user turn). */
+  includeWebSearch?: boolean
+  /** Inline text/image attachments (only needed on the latest user turn). */
+  includeAttachments?: boolean
+  maxAttachmentChars?: number
+  maxWebSearchChars?: number
+}
+
+function clipAttachmentText(text: string, max: number): string {
+  if (text.length <= max) return text
+  return `${text.slice(0, max - 20)}\n… [truncated for context limit]`
+}
+
 /** Build provider-facing content + images from a stored message. */
-export function messageToProviderMessage(message: Message): ProviderMessage {
+export function messageToProviderMessage(
+  message: Message,
+  options: ProviderMessageOptions = {},
+): ProviderMessage {
+  const {
+    includeWebSearch = true,
+    includeAttachments = true,
+    maxAttachmentChars = ATTACHMENT_CONSTRAINTS.maxTextChars,
+    maxWebSearchChars,
+  } = options
+
   let content = message.content
   const attachments = message.attachments ?? []
 
-  for (const file of attachments) {
-    if (file.kind === 'text' && file.text) {
-      content = `${content}\n\n[Attached file: ${file.name}]\n\`\`\`\n${file.text}\n\`\`\``
+  if (includeAttachments) {
+    for (const file of attachments) {
+      if (file.kind === 'text' && file.text) {
+        const text = clipAttachmentText(file.text, maxAttachmentChars)
+        content = `${content}\n\n[Attached file: ${file.name}]\n\`\`\`\n${text}\n\`\`\``
+      }
     }
   }
 
-  if (message.webSearch?.length) {
-    content = `${content}\n\n${formatWebSearchForPrompt(message.webSearch)}`
+  if (includeWebSearch && message.webSearch?.length) {
+    content = `${content}\n\n${formatWebSearchForPrompt(message.webSearch, maxWebSearchChars)}`
   }
 
-  const images = attachments
-    .filter((a) => a.kind === 'image' && a.base64)
-    .map((a) => a.base64 as string)
+  const images = includeAttachments
+    ? attachments
+        .filter((a) => a.kind === 'image' && a.base64)
+        .map((a) => a.base64 as string)
+    : []
 
   return {
     role: message.role,

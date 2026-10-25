@@ -228,10 +228,22 @@ export function MessageBubble({
             {!isUser && message.generationMs != null && (
               <span
                 className="flex h-7 items-center gap-1 px-2 text-xs text-muted-foreground"
-                title="Time to complete this response"
+                title={
+                  message.ttftMs != null
+                    ? `${formatGenerationDuration(message.ttftMs)} to first token · ${formatGenerationDuration(message.generationMs)} total`
+                    : `${formatGenerationDuration(message.generationMs)} total`
+                }
               >
                 <Timer className="h-3.5 w-3.5 shrink-0 opacity-70" />
-                {formatGenerationDuration(message.generationMs)}
+                {message.ttftMs != null ? (
+                  <>
+                    {formatGenerationDuration(message.ttftMs)}
+                    <span className="opacity-50">·</span>
+                    {formatGenerationDuration(message.generationMs)}
+                  </>
+                ) : (
+                  formatGenerationDuration(message.generationMs)
+                )}
               </span>
             )}
           </div>

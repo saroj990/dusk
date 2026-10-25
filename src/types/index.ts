@@ -29,6 +29,13 @@ export interface Message {
   webSearch?: WebSearchHit[]
   /** Wall-clock ms for assistant generation (stream start → finish or stop). */
   generationMs?: number
+  /** Ms from stream start until the first content token. */
+  ttftMs?: number
+}
+
+export interface MessageGenerationStats {
+  generationMs?: number
+  ttftMs?: number
 }
 
 export interface Chat {

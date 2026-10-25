@@ -161,15 +161,22 @@ function clip(text: string, max = SNIPPET_CHARS): string {
   return `${cleaned.slice(0, max - 1)}…`
 }
 
-export function formatWebSearchForPrompt(hits: WebSearchHit[]): string {
+export function formatWebSearchForPrompt(
+  hits: WebSearchHit[],
+  maxChars?: number,
+): string {
   if (!hits.length) return ''
   const lines = hits.map(
     (hit, i) => `${i + 1}. ${hit.title}\n   ${hit.url}\n   ${hit.snippet}`,
   )
-  return [
+  let block = [
     '[Web search results — use these for current facts; cite titles/URLs when relevant]',
     ...lines,
   ].join('\n')
+  if (maxChars !== undefined && block.length > maxChars) {
+    block = `${block.slice(0, maxChars - 1)}…`
+  }
+  return block
 }
 
 async function searchWikipedia(query: string, signal?: AbortSignal): Promise<WebSearchHit[]> {
