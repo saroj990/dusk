@@ -37,20 +37,33 @@ export function ChatView() {
   const stickToBottomRef = useRef(true)
   /** Skip scroll listener while we programmatically scroll (avoids stick / jump UI thrash). */
   const programmaticScrollRef = useRef(false)
+  const programmaticScrollEndRef = useRef<number | null>(null)
+  const streamScrollRafRef = useRef<number | null>(null)
   const [showJumpToLatest, setShowJumpToLatest] = useState(false)
   const [showEarlierMessages, setShowEarlierMessages] = useState(false)
 
   const chat = chats.find((c) => c.id === activeChatId) ?? null
 
-  const scrollToBottom = useCallback((behavior: ScrollBehavior) => {
-    const el = scrollRef.current
-    if (!el) return
+  const beginProgrammaticScroll = useCallback(() => {
     programmaticScrollRef.current = true
-    el.scrollTo({ top: el.scrollHeight, behavior })
-    requestAnimationFrame(() => {
+    if (programmaticScrollEndRef.current !== null) {
+      window.clearTimeout(programmaticScrollEndRef.current)
+    }
+    programmaticScrollEndRef.current = window.setTimeout(() => {
       programmaticScrollRef.current = false
-    })
+      programmaticScrollEndRef.current = null
+    }, 120)
   }, [])
+
+  const scrollToBottom = useCallback(
+    (behavior: ScrollBehavior) => {
+      const el = scrollRef.current
+      if (!el) return
+      beginProgrammaticScroll()
+      el.scrollTo({ top: el.scrollHeight, behavior })
+    },
+    [beginProgrammaticScroll],
+  )
 
   const updateJumpToLatest = useCallback((nearBottom: boolean) => {
     const streaming = useChatStore.getState().isStreaming
@@ -90,7 +103,7 @@ export function ChatView() {
     if (!current || current.messages.length <= MESSAGE_COLLAPSE_THRESHOLD) return
     const idx = current.messages.findIndex((m) => m.id === focusedMessageId)
     if (idx < 0 || idx >= current.messages.length - MESSAGE_KEEP_RECENT) return
-    setShowEarlierMessages(true)
+    setShowEarlierMessages((prev) => (prev ? prev : true))
   }, [focusedMessageId, activeChatId, messageCount])
 
   useEffect(() => {
@@ -113,7 +126,35 @@ export function ChatView() {
     if (focusedMessageId) return
     if (!stickToBottomRef.current) return
     scrollToBottom('auto')
-  }, [focusedMessageId, visibleMessageKey, streamingContent, scrollToBottom])
+  }, [focusedMessageId, visibleMessageKey, scrollToBottom])
+
+  useLayoutEffect(() => {
+    if (focusedMessageId) return
+    if (!stickToBottomRef.current) return
+    if (!isStreaming) return
+
+    if (streamScrollRafRef.current !== null) {
+      cancelAnimationFrame(streamScrollRafRef.current)
+    }
+    streamScrollRafRef.current = requestAnimationFrame(() => {
+      streamScrollRafRef.current = null
+      const el = scrollRef.current
+      if (!el || !stickToBottomRef.current) return
+      beginProgrammaticScroll()
+      el.scrollTop = el.scrollHeight
+    })
+  }, [beginProgrammaticScroll, focusedMessageId, isStreaming, streamingContent])
+
+  useEffect(() => {
+    return () => {
+      if (streamScrollRafRef.current !== null) {
+        cancelAnimationFrame(streamScrollRafRef.current)
+      }
+      if (programmaticScrollEndRef.current !== null) {
+        window.clearTimeout(programmaticScrollEndRef.current)
+      }
+    }
+  }, [chat?.id])
 
   useEffect(() => {
     if (!isStreaming) {

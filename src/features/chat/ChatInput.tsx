@@ -1,5 +1,14 @@
 import { useEffect, useRef, useState, type KeyboardEvent } from 'react'
-import { ArrowUp, FileText, Globe, ImageIcon, Paperclip, Square, X } from 'lucide-react'
+import {
+  ArrowUp,
+  FileText,
+  Globe,
+  ImageIcon,
+  Loader2,
+  Paperclip,
+  Square,
+  X,
+} from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
   ATTACHMENT_CONSTRAINTS,
@@ -18,6 +27,7 @@ interface ChatInputProps {
   onSend: (content: string, attachments: Attachment[], options?: { webSearch?: boolean }) => void
   onStop: () => void
   isStreaming: boolean
+  isSearchingWeb?: boolean
   disabled?: boolean
   placeholder?: string
   insertRequest?: InsertRequest | null
@@ -28,6 +38,7 @@ export function ChatInput({
   onSend,
   onStop,
   isStreaming,
+  isSearchingWeb = false,
   disabled,
   placeholder = 'Message…',
   insertRequest,
@@ -79,7 +90,12 @@ export function ChatInput({
   }
 
   const submit = () => {
-    if ((!value.trim() && attachments.length === 0) || isStreaming || disabled) {
+    if (
+      (!value.trim() && attachments.length === 0) ||
+      isStreaming ||
+      isSearchingWeb ||
+      disabled
+    ) {
       return
     }
     onSend(value, attachments, { webSearch })
@@ -213,6 +229,17 @@ export function ChatInput({
             >
               <Square className="h-3.5 w-3.5 fill-current" />
             </Button>
+          ) : isSearchingWeb ? (
+            <Button
+              type="button"
+              size="icon"
+              variant="secondary"
+              className="shrink-0 rounded-xl"
+              disabled
+              aria-label="Searching the web"
+            >
+              <Loader2 className="h-4 w-4 animate-spin" />
+            </Button>
           ) : (
             <Button
               type="button"
@@ -233,6 +260,21 @@ export function ChatInput({
       {attachError && (
         <p className="mx-auto mt-2 max-w-3xl text-center text-[11px] text-destructive">
           {attachError}
+        </p>
+      )}
+      {(isSearchingWeb || isStreaming) && (
+        <p className="mx-auto mt-2 max-w-3xl text-center text-xs text-muted-foreground">
+          {isSearchingWeb ? (
+            <span className="inline-flex items-center gap-2">
+              <span className="inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-primary" />
+              Searching the web…
+            </span>
+          ) : (
+            <span className="inline-flex items-center gap-2">
+              <span className="inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-primary" />
+              Generating response…
+            </span>
+          )}
         </p>
       )}
       <p className="mx-auto mt-2 max-w-3xl text-center text-[11px] text-muted-foreground">

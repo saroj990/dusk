@@ -3,10 +3,10 @@ import {
   Check,
   Copy,
   FileText,
-  Globe,
   ImageIcon,
   Pencil,
   RefreshCw,
+  Timer,
   User,
   Bot,
 } from 'lucide-react'
@@ -15,7 +15,8 @@ import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { Markdown } from './Markdown'
 import { previewMessageText } from './messageCollapse'
-import { cn, formatBytes } from '@/utils/cn'
+import { WebSearchSources } from './WebSearchSources'
+import { cn, formatBytes, formatGenerationDuration } from '@/utils/cn'
 
 interface MessageBubbleProps {
   message: Message
@@ -49,8 +50,9 @@ export function MessageBubble({
     !editing
 
   useEffect(() => {
+    if (!editing) return
     setDraft(message.content)
-  }, [message.content])
+  }, [message.content, editing])
 
   useEffect(() => {
     setUserExpanded(false)
@@ -161,49 +163,32 @@ export function MessageBubble({
               </div>
             )}
 
-            {message.webSearch && message.webSearch.length > 0 && (
-              <div className="space-y-1 rounded-lg border border-border bg-muted/30 px-2 py-2">
-                <div className="flex items-center gap-1 text-[11px] font-medium text-muted-foreground">
-                  <Globe className="h-3 w-3" />
-                  Sources
-                </div>
-                <ul className="space-y-1">
-                  {message.webSearch.map((hit) => (
-                    <li key={hit.url} className="text-[11px] leading-snug">
-                      <a
-                        href={hit.url}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="font-medium underline-offset-2 hover:underline"
-                      >
-                        {hit.title}
-                      </a>
-                      {hit.snippet ? (
-                        <span className="block text-muted-foreground">{hit.snippet}</span>
-                      ) : null}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
-
             {isUser ? (
               message.content ? (
                 <p className="whitespace-pre-wrap text-sm leading-relaxed">
                   {message.content}
                 </p>
               ) : null
-            ) : message.content ? (
-              isStreaming ? (
+            ) : isStreaming ? (
+              message.content ? (
                 <pre className="assistant-content whitespace-pre-wrap overflow-x-auto">
                   {message.content}
                 </pre>
               ) : (
-                <Markdown content={message.content} />
+                <p className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <span className="inline-block h-2 w-2 animate-pulse rounded-full bg-primary" />
+                  Generating…
+                </p>
               )
+            ) : message.content ? (
+              <Markdown content={message.content} />
             ) : null}
 
-            {isStreaming && (
+            {message.webSearch && message.webSearch.length > 0 && (
+              <WebSearchSources hits={message.webSearch} className="mt-1" />
+            )}
+
+            {isStreaming && message.content && (
               <span className="ml-0.5 inline-block h-4 w-1.5 animate-pulse rounded-sm bg-foreground/70 align-middle" />
             )}
           </>
@@ -213,7 +198,7 @@ export function MessageBubble({
           !isStreaming &&
           !compact &&
           (message.content || (message.attachments?.length ?? 0) > 0) && (
-          <div className="flex gap-1 opacity-0 transition-opacity group-hover:opacity-100 focus-within:opacity-100">
+          <div className="flex flex-wrap items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100 focus-within:opacity-100">
             {message.content && (
               <Button variant="ghost" size="sm" className="h-7 px-2" onClick={copy}>
                 {copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
@@ -225,7 +210,10 @@ export function MessageBubble({
                 variant="ghost"
                 size="sm"
                 className="h-7 px-2"
-                onClick={() => setEditing(true)}
+                onClick={() => {
+                  setDraft(message.content)
+                  setEditing(true)
+                }}
               >
                 <Pencil className="h-3.5 w-3.5" />
                 Edit
@@ -241,6 +229,27 @@ export function MessageBubble({
                 <RefreshCw className="h-3.5 w-3.5" />
                 Regenerate
               </Button>
+            )}
+            {!isUser && message.generationMs != null && (
+              <span
+                className="flex h-7 items-center gap-1 px-2 text-xs text-muted-foreground"
+                title={
+                  message.ttftMs != null
+                    ? `${formatGenerationDuration(message.ttftMs)} to first token · ${formatGenerationDuration(message.generationMs)} total`
+                    : `${formatGenerationDuration(message.generationMs)} total`
+                }
+              >
+                <Timer className="h-3.5 w-3.5 shrink-0 opacity-70" />
+                {message.ttftMs != null ? (
+                  <>
+                    {formatGenerationDuration(message.ttftMs)}
+                    <span className="opacity-50">·</span>
+                    {formatGenerationDuration(message.generationMs)}
+                  </>
+                ) : (
+                  formatGenerationDuration(message.generationMs)
+                )}
+              </span>
             )}
           </div>
         )}

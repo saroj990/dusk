@@ -27,6 +27,15 @@ export interface Message {
   createdAt: number
   attachments?: Attachment[]
   webSearch?: WebSearchHit[]
+  /** Wall-clock ms for assistant generation (stream start → finish or stop). */
+  generationMs?: number
+  /** Ms from stream start until the first content token. */
+  ttftMs?: number
+}
+
+export interface MessageGenerationStats {
+  generationMs?: number
+  ttftMs?: number
 }
 
 export interface Chat {
@@ -75,6 +84,10 @@ export interface ChatRequest {
   messages: ProviderMessage[]
   system?: string
   temperature?: number
+  /** Ollama `num_ctx` — smaller values often improve TTFT on local models. */
+  numCtx?: number
+  /** Ollama `num_predict` / OpenAI `max_tokens`. */
+  maxOutputTokens?: number
   signal?: AbortSignal
 }
 
@@ -109,6 +122,12 @@ export interface AppSettings {
   sidebarCollapsed: boolean
   webSearchProvider: WebSearchProvider
   webSearchApiKey: string
+  /** Max user+assistant messages sent per request (UI keeps full history). */
+  contextMessageLimit: number
+  /** Ollama context window; 0 = model default. */
+  ollamaNumCtx: number
+  /** Cap completion length; 0 = provider default. */
+  maxOutputTokens: number
 }
 
 export const DEFAULT_SETTINGS: AppSettings = {
@@ -123,6 +142,9 @@ export const DEFAULT_SETTINGS: AppSettings = {
   recentModels: [],
   webSearchProvider: 'duckduckgo',
   webSearchApiKey: '',
+  contextMessageLimit: 20,
+  ollamaNumCtx: 8192,
+  maxOutputTokens: 4096,
   providers: [
     {
       id: 'ollama',

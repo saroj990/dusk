@@ -1,6 +1,6 @@
 import { useCallback } from 'react'
 import { getProvider } from '@/services/providers/registry'
-import { messageToProviderMessage } from '@/features/chat/attachments'
+import { buildProviderMessages } from '@/features/chat/contextWindow'
 import { useChatStore } from '@/stores/chatStore'
 import {
   getActiveProviderConfig,
@@ -14,17 +14,17 @@ import { searchWeb } from '@/services/webSearch'
 let activeAbort: AbortController | null = null
 
 export function useChat() {
-  const {
-    createChat,
-    appendMessage,
-    updateMessage,
-    setMessages,
-    setStreaming,
-    setStreamingContent,
-    setError,
-    getActiveChat,
-    isStreaming,
-  } = useChatStore()
+  const createChat = useChatStore((s) => s.createChat)
+  const appendMessage = useChatStore((s) => s.appendMessage)
+  const updateMessage = useChatStore((s) => s.updateMessage)
+  const setMessages = useChatStore((s) => s.setMessages)
+  const setStreaming = useChatStore((s) => s.setStreaming)
+  const setSearchingWeb = useChatStore((s) => s.setSearchingWeb)
+  const setStreamingContent = useChatStore((s) => s.setStreamingContent)
+  const setError = useChatStore((s) => s.setError)
+  const getActiveChat = useChatStore((s) => s.getActiveChat)
+  const isStreaming = useChatStore((s) => s.isStreaming)
+  const isSearchingWeb = useChatStore((s) => s.isSearchingWeb)
 
   const stop = useCallback(() => {
     activeAbort?.abort()
@@ -64,26 +64,53 @@ export function useChat() {
       setError(null)
 
       let accumulated = ''
+      let streamStartedAt: number | null = null
+      let ttftMs: number | undefined
+
+      const persistAssistant = async (content: string) => {
+        const generationMs =
+          streamStartedAt !== null
+            ? Math.round(performance.now() - streamStartedAt)
+            : undefined
+        await updateMessage(chatId, assistantId, content, {
+          generationMs,
+          ttftMs,
+        })
+      }
 
       try {
         const provider = getProvider(providerConfig)
+        const numCtx =
+          providerConfig.type === 'ollama' && settings.ollamaNumCtx > 0
+            ? settings.ollamaNumCtx
+            : undefined
+        const maxOutputTokens =
+          settings.maxOutputTokens > 0 ? settings.maxOutputTokens : undefined
+
         const stream = provider.chat({
           model: settings.activeModel,
-          messages: history.map(messageToProviderMessage),
+          messages: buildProviderMessages(history, settings.contextMessageLimit),
           system: settings.systemPrompt || undefined,
           temperature: settings.temperature,
+          numCtx,
+          maxOutputTokens,
           signal: controller.signal,
         })
 
+        streamStartedAt = performance.now()
+
         for await (const chunk of stream) {
           if (chunk.content) {
+            if (ttftMs === undefined && streamStartedAt !== null) {
+              ttftMs = Math.round(performance.now() - streamStartedAt)
+            }
             accumulated += chunk.content
             setStreamingContent(accumulated)
           }
         }
 
         if (accumulated) {
-          await updateMessage(chatId, assistantId, accumulated)
+          await persistAssistant(accumulated)
         }
       } catch (err) {
         if (err instanceof DOMException && err.name === 'AbortError') {
@@ -96,7 +123,7 @@ export function useChat() {
               )
             }
           } else {
-            await updateMessage(chatId, assistantId, accumulated)
+            await persistAssistant(accumulated)
           }
         } else {
           const message = err instanceof Error ? err.message : 'Generation failed'
@@ -110,7 +137,7 @@ export function useChat() {
               )
             }
           } else {
-            await updateMessage(chatId, assistantId, accumulated)
+            await persistAssistant(accumulated)
           }
         }
       } finally {
@@ -157,6 +184,7 @@ export function useChat() {
 
       let webSearch: WebSearchHit[] | undefined
       if (options?.webSearch && trimmed) {
+        setSearchingWeb(true)
         try {
           webSearch = await searchWeb(trimmed, settings)
           if (!webSearch.length) {
@@ -167,6 +195,8 @@ export function useChat() {
         } catch (err) {
           setError(err instanceof Error ? err.message : 'Web search failed')
           return
+        } finally {
+          setSearchingWeb(false)
         }
       }
 
@@ -229,5 +259,12 @@ export function useChat() {
     [appendMessage, getActiveChat, isStreaming, runGeneration, setMessages],
   )
 
-  return { send, stop, regenerate, editAndResend, isStreaming }
+  return {
+    send,
+    stop,
+    regenerate,
+    editAndResend,
+    isStreaming,
+    isSearchingWeb,
+  }
 }

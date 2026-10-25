@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import type { Chat, Message } from '@/types'
+import type { Chat, Message, MessageGenerationStats } from '@/types'
 import * as storage from '@/services/storage'
 import { createId, truncate } from '@/utils/cn'
 
@@ -8,6 +8,7 @@ interface ChatState {
   activeChatId: string | null
   focusedMessageId: string | null
   isStreaming: boolean
+  isSearchingWeb: boolean
   streamingContent: string
   error: string | null
   hydrated: boolean
@@ -27,9 +28,15 @@ interface ChatState {
     chatId: string,
     message: Omit<Message, 'id' | 'createdAt'> & { id?: string },
   ) => Promise<Message>
-  updateMessage: (chatId: string, messageId: string, content: string) => Promise<void>
+  updateMessage: (
+    chatId: string,
+    messageId: string,
+    content: string,
+    stats?: MessageGenerationStats,
+  ) => Promise<void>
   setMessages: (chatId: string, messages: Message[]) => Promise<void>
   setStreaming: (isStreaming: boolean) => void
+  setSearchingWeb: (isSearchingWeb: boolean) => void
   setStreamingContent: (content: string) => void
   setError: (error: string | null) => void
   getActiveChat: () => Chat | null
@@ -44,6 +51,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
   activeChatId: null,
   focusedMessageId: null,
   isStreaming: false,
+  isSearchingWeb: false,
   streamingContent: '',
   error: null,
   hydrated: false,
@@ -168,14 +176,23 @@ export const useChatStore = create<ChatState>((set, get) => ({
     return full
   },
 
-  updateMessage: async (chatId, messageId, content) => {
+  updateMessage: async (chatId, messageId, content, stats) => {
     const chat = get().chats.find((c) => c.id === chatId)
     if (!chat) return
 
     const updated: Chat = {
       ...chat,
       messages: chat.messages.map((m) =>
-        m.id === messageId ? { ...m, content } : m,
+        m.id === messageId
+          ? {
+              ...m,
+              content,
+              ...(stats?.generationMs !== undefined
+                ? { generationMs: stats.generationMs }
+                : {}),
+              ...(stats?.ttftMs !== undefined ? { ttftMs: stats.ttftMs } : {}),
+            }
+          : m,
       ),
       updatedAt: Date.now(),
     }
@@ -203,6 +220,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
   },
 
   setStreaming: (isStreaming) => set({ isStreaming }),
+  setSearchingWeb: (isSearchingWeb) => set({ isSearchingWeb }),
   setStreamingContent: (streamingContent) => set({ streamingContent }),
   setError: (error) => set({ error }),
 
