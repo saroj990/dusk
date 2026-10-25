@@ -17,6 +17,20 @@ interface OllamaChatStreamChunk {
   error?: string
 }
 
+function buildOllamaOptions(request: ChatRequest): Record<string, number> | undefined {
+  const options: Record<string, number> = {}
+  if (request.temperature !== undefined) {
+    options.temperature = request.temperature
+  }
+  if (request.numCtx !== undefined && request.numCtx > 0) {
+    options.num_ctx = request.numCtx
+  }
+  if (request.maxOutputTokens !== undefined && request.maxOutputTokens > 0) {
+    options.num_predict = request.maxOutputTokens
+  }
+  return Object.keys(options).length > 0 ? options : undefined
+}
+
 export class OllamaProvider implements AIProvider {
   readonly id: string
   readonly name: string
@@ -78,10 +92,7 @@ export class OllamaProvider implements AIProvider {
           ...(m.images?.length ? { images: m.images } : {}),
         })),
         stream: true,
-        options:
-          request.temperature !== undefined
-            ? { temperature: request.temperature }
-            : undefined,
+        options: buildOllamaOptions(request),
       }),
     })
 

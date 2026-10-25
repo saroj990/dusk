@@ -108,6 +108,10 @@ export async function loadSettings(): Promise<AppSettings> {
     activeProjectId: stored.activeProjectId ?? null,
     webSearchProvider: stored.webSearchProvider ?? DEFAULT_SETTINGS.webSearchProvider,
     webSearchApiKey: stored.webSearchApiKey ?? '',
+    contextMessageLimit:
+      stored.contextMessageLimit ?? DEFAULT_SETTINGS.contextMessageLimit,
+    ollamaNumCtx: stored.ollamaNumCtx ?? DEFAULT_SETTINGS.ollamaNumCtx,
+    maxOutputTokens: stored.maxOutputTokens ?? DEFAULT_SETTINGS.maxOutputTokens,
   }
 }
 

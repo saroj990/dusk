@@ -23,6 +23,8 @@ import {
   useSettingsStore,
 } from '@/stores/settingsStore'
 import { useModelStore } from '@/stores/modelStore'
+import { CLOUD_PROVIDER_PRESETS } from '@/features/settings/cloudProviderPresets'
+import { MAX_CONTEXT_MESSAGES_CAP } from '@/features/chat/contextWindow'
 import type { ProviderConfig, ThemeMode, WebSearchProvider } from '@/types'
 import { Plus, Trash2 } from 'lucide-react'
 
@@ -197,6 +199,48 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
               )
             })}
 
+            <div className="space-y-2">
+              <p className="text-xs font-medium text-muted-foreground">
+                Cloud providers (hosted GPUs — often faster TTFT than local CPU)
+              </p>
+              <div className="flex flex-wrap gap-1.5">
+                {CLOUD_PROVIDER_PRESETS.map((preset) => (
+                  <Button
+                    key={preset.baseUrl}
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    className="h-8"
+                    title={preset.hint}
+                    onClick={async () => {
+                      const exists = settings.providers.some(
+                        (p) => p.baseUrl.replace(/\/$/, '') === preset.baseUrl,
+                      )
+                      if (exists) {
+                        const match = settings.providers.find(
+                          (p) => p.baseUrl.replace(/\/$/, '') === preset.baseUrl,
+                        )
+                        if (match) void setActiveProvider(match.id)
+                        return
+                      }
+                      const created = await addProvider({
+                        type: 'openai-compatible',
+                        name: preset.name,
+                        baseUrl: preset.baseUrl,
+                      })
+                      void setActiveProvider(created.id)
+                      await refresh(created)
+                    }}
+                  >
+                    {preset.name}
+                  </Button>
+                ))}
+              </div>
+              <p className="text-[11px] text-muted-foreground">
+                Add a provider, paste its API key below, then pick a model in the header.
+              </p>
+            </div>
+
             <div className="space-y-2 rounded-lg border border-dashed border-border p-3">
               <p className="text-sm font-medium">Add OpenAI-compatible</p>
               <Input
@@ -286,6 +330,68 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
                 />
               </div>
             )}
+          </section>
+
+          <Separator />
+
+          <section className="space-y-3">
+            <div>
+              <h3 className="text-sm font-medium">Speed &amp; context</h3>
+              <p className="text-xs text-muted-foreground">
+                Smaller context and output caps reduce prefill time (TTFT) on local Ollama.
+              </p>
+            </div>
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <Label htmlFor="contextMessageLimit">Messages sent to model</Label>
+                <span className="text-xs tabular-nums text-muted-foreground">
+                  {settings.contextMessageLimit}
+                </span>
+              </div>
+              <input
+                id="contextMessageLimit"
+                type="range"
+                min={4}
+                max={MAX_CONTEXT_MESSAGES_CAP}
+                step={2}
+                value={settings.contextMessageLimit}
+                onChange={(e) =>
+                  void updateSettings({ contextMessageLimit: Number(e.target.value) })
+                }
+                className="w-full accent-primary"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="ollamaNumCtx">Ollama context window (num_ctx)</Label>
+              <Input
+                id="ollamaNumCtx"
+                type="number"
+                min={0}
+                step={1024}
+                value={settings.ollamaNumCtx}
+                onChange={(e) =>
+                  void updateSettings({ ollamaNumCtx: Number(e.target.value) || 0 })
+                }
+                placeholder="8192 (0 = model default)"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="maxOutputTokens">Max output tokens</Label>
+              <Input
+                id="maxOutputTokens"
+                type="number"
+                min={0}
+                step={256}
+                value={settings.maxOutputTokens}
+                onChange={(e) =>
+                  void updateSettings({ maxOutputTokens: Number(e.target.value) || 0 })
+                }
+                placeholder="4096 (0 = provider default)"
+              />
+              <p className="text-[11px] text-muted-foreground">
+                Applies as Ollama num_predict or OpenAI max_tokens on cloud providers.
+              </p>
+            </div>
           </section>
 
           <Separator />

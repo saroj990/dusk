@@ -19,10 +19,12 @@ export function useChat() {
   const updateMessage = useChatStore((s) => s.updateMessage)
   const setMessages = useChatStore((s) => s.setMessages)
   const setStreaming = useChatStore((s) => s.setStreaming)
+  const setSearchingWeb = useChatStore((s) => s.setSearchingWeb)
   const setStreamingContent = useChatStore((s) => s.setStreamingContent)
   const setError = useChatStore((s) => s.setError)
   const getActiveChat = useChatStore((s) => s.getActiveChat)
   const isStreaming = useChatStore((s) => s.isStreaming)
+  const isSearchingWeb = useChatStore((s) => s.isSearchingWeb)
 
   const stop = useCallback(() => {
     activeAbort?.abort()
@@ -78,11 +80,20 @@ export function useChat() {
 
       try {
         const provider = getProvider(providerConfig)
+        const numCtx =
+          providerConfig.type === 'ollama' && settings.ollamaNumCtx > 0
+            ? settings.ollamaNumCtx
+            : undefined
+        const maxOutputTokens =
+          settings.maxOutputTokens > 0 ? settings.maxOutputTokens : undefined
+
         const stream = provider.chat({
           model: settings.activeModel,
-          messages: buildProviderMessages(history),
+          messages: buildProviderMessages(history, settings.contextMessageLimit),
           system: settings.systemPrompt || undefined,
           temperature: settings.temperature,
+          numCtx,
+          maxOutputTokens,
           signal: controller.signal,
         })
 
@@ -173,6 +184,7 @@ export function useChat() {
 
       let webSearch: WebSearchHit[] | undefined
       if (options?.webSearch && trimmed) {
+        setSearchingWeb(true)
         try {
           webSearch = await searchWeb(trimmed, settings)
           if (!webSearch.length) {
@@ -183,6 +195,8 @@ export function useChat() {
         } catch (err) {
           setError(err instanceof Error ? err.message : 'Web search failed')
           return
+        } finally {
+          setSearchingWeb(false)
         }
       }
 
@@ -245,5 +259,12 @@ export function useChat() {
     [appendMessage, getActiveChat, isStreaming, runGeneration, setMessages],
   )
 
-  return { send, stop, regenerate, editAndResend, isStreaming }
+  return {
+    send,
+    stop,
+    regenerate,
+    editAndResend,
+    isStreaming,
+    isSearchingWeb,
+  }
 }

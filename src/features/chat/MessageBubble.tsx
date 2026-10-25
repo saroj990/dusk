@@ -169,21 +169,26 @@ export function MessageBubble({
                   {message.content}
                 </p>
               ) : null
-            ) : message.content ? (
-              isStreaming ? (
+            ) : isStreaming ? (
+              message.content ? (
                 <pre className="assistant-content whitespace-pre-wrap overflow-x-auto">
                   {message.content}
                 </pre>
               ) : (
-                <Markdown content={message.content} />
+                <p className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <span className="inline-block h-2 w-2 animate-pulse rounded-full bg-primary" />
+                  Generating…
+                </p>
               )
+            ) : message.content ? (
+              <Markdown content={message.content} />
             ) : null}
 
             {message.webSearch && message.webSearch.length > 0 && (
               <WebSearchSources hits={message.webSearch} className="mt-1" />
             )}
 
-            {isStreaming && (
+            {isStreaming && message.content && (
               <span className="ml-0.5 inline-block h-4 w-1.5 animate-pulse rounded-sm bg-foreground/70 align-middle" />
             )}
           </>

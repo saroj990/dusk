@@ -38,7 +38,7 @@ export function App() {
   const setActiveModel = useSettingsStore((s) => s.setActiveModel)
   const refreshModels = useModelStore((s) => s.refresh)
   const models = useModelStore((s) => s.models)
-  const { send, stop, isStreaming } = useChat()
+  const { send, stop, isStreaming, isSearchingWeb } = useChat()
 
   useEffect(() => {
     void hydrateSettings()
@@ -111,6 +111,7 @@ export function App() {
           }
           onStop={stop}
           isStreaming={isStreaming}
+          isSearchingWeb={isSearchingWeb}
           disabled={!settings.activeModel}
           insertRequest={insertRequest}
           webSearchProviderLabel={

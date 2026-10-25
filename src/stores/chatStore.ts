@@ -8,6 +8,7 @@ interface ChatState {
   activeChatId: string | null
   focusedMessageId: string | null
   isStreaming: boolean
+  isSearchingWeb: boolean
   streamingContent: string
   error: string | null
   hydrated: boolean
@@ -35,6 +36,7 @@ interface ChatState {
   ) => Promise<void>
   setMessages: (chatId: string, messages: Message[]) => Promise<void>
   setStreaming: (isStreaming: boolean) => void
+  setSearchingWeb: (isSearchingWeb: boolean) => void
   setStreamingContent: (content: string) => void
   setError: (error: string | null) => void
   getActiveChat: () => Chat | null
@@ -49,6 +51,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
   activeChatId: null,
   focusedMessageId: null,
   isStreaming: false,
+  isSearchingWeb: false,
   streamingContent: '',
   error: null,
   hydrated: false,
@@ -217,6 +220,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
   },
 
   setStreaming: (isStreaming) => set({ isStreaming }),
+  setSearchingWeb: (isSearchingWeb) => set({ isSearchingWeb }),
   setStreamingContent: (streamingContent) => set({ streamingContent }),
   setError: (error) => set({ error }),
 

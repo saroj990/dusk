@@ -121,6 +121,9 @@ export class OpenAICompatibleProvider implements AIProvider {
         }),
         stream: true,
         temperature: request.temperature,
+        ...(request.maxOutputTokens !== undefined && request.maxOutputTokens > 0
+          ? { max_tokens: request.maxOutputTokens }
+          : {}),
       }),
     })
 
