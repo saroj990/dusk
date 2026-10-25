@@ -6,6 +6,7 @@ import {
   ImageIcon,
   Pencil,
   RefreshCw,
+  Timer,
   User,
   Bot,
 } from 'lucide-react'
@@ -15,7 +16,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { Markdown } from './Markdown'
 import { previewMessageText } from './messageCollapse'
 import { WebSearchSources } from './WebSearchSources'
-import { cn, formatBytes } from '@/utils/cn'
+import { cn, formatBytes, formatGenerationDuration } from '@/utils/cn'
 
 interface MessageBubbleProps {
   message: Message
@@ -192,7 +193,7 @@ export function MessageBubble({
           !isStreaming &&
           !compact &&
           (message.content || (message.attachments?.length ?? 0) > 0) && (
-          <div className="flex gap-1 opacity-0 transition-opacity group-hover:opacity-100 focus-within:opacity-100">
+          <div className="flex flex-wrap items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100 focus-within:opacity-100">
             {message.content && (
               <Button variant="ghost" size="sm" className="h-7 px-2" onClick={copy}>
                 {copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
@@ -223,6 +224,15 @@ export function MessageBubble({
                 <RefreshCw className="h-3.5 w-3.5" />
                 Regenerate
               </Button>
+            )}
+            {!isUser && message.generationMs != null && (
+              <span
+                className="flex h-7 items-center gap-1 px-2 text-xs text-muted-foreground"
+                title="Time to complete this response"
+              >
+                <Timer className="h-3.5 w-3.5 shrink-0 opacity-70" />
+                {formatGenerationDuration(message.generationMs)}
+              </span>
             )}
           </div>
         )}

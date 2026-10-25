@@ -27,7 +27,12 @@ interface ChatState {
     chatId: string,
     message: Omit<Message, 'id' | 'createdAt'> & { id?: string },
   ) => Promise<Message>
-  updateMessage: (chatId: string, messageId: string, content: string) => Promise<void>
+  updateMessage: (
+    chatId: string,
+    messageId: string,
+    content: string,
+    generationMs?: number,
+  ) => Promise<void>
   setMessages: (chatId: string, messages: Message[]) => Promise<void>
   setStreaming: (isStreaming: boolean) => void
   setStreamingContent: (content: string) => void
@@ -168,14 +173,20 @@ export const useChatStore = create<ChatState>((set, get) => ({
     return full
   },
 
-  updateMessage: async (chatId, messageId, content) => {
+  updateMessage: async (chatId, messageId, content, generationMs) => {
     const chat = get().chats.find((c) => c.id === chatId)
     if (!chat) return
 
     const updated: Chat = {
       ...chat,
       messages: chat.messages.map((m) =>
-        m.id === messageId ? { ...m, content } : m,
+        m.id === messageId
+          ? {
+              ...m,
+              content,
+              ...(generationMs !== undefined ? { generationMs } : {}),
+            }
+          : m,
       ),
       updatedAt: Date.now(),
     }

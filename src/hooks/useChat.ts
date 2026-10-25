@@ -62,6 +62,15 @@ export function useChat() {
       setError(null)
 
       let accumulated = ''
+      let streamStartedAt: number | null = null
+
+      const persistAssistant = async (content: string) => {
+        const generationMs =
+          streamStartedAt !== null
+            ? Math.round(performance.now() - streamStartedAt)
+            : undefined
+        await updateMessage(chatId, assistantId, content, generationMs)
+      }
 
       try {
         const provider = getProvider(providerConfig)
@@ -73,6 +82,8 @@ export function useChat() {
           signal: controller.signal,
         })
 
+        streamStartedAt = performance.now()
+
         for await (const chunk of stream) {
           if (chunk.content) {
             accumulated += chunk.content
@@ -81,7 +92,7 @@ export function useChat() {
         }
 
         if (accumulated) {
-          await updateMessage(chatId, assistantId, accumulated)
+          await persistAssistant(accumulated)
         }
       } catch (err) {
         if (err instanceof DOMException && err.name === 'AbortError') {
@@ -94,7 +105,7 @@ export function useChat() {
               )
             }
           } else {
-            await updateMessage(chatId, assistantId, accumulated)
+            await persistAssistant(accumulated)
           }
         } else {
           const message = err instanceof Error ? err.message : 'Generation failed'
@@ -108,7 +119,7 @@ export function useChat() {
               )
             }
           } else {
-            await updateMessage(chatId, assistantId, accumulated)
+            await persistAssistant(accumulated)
           }
         }
       } finally {

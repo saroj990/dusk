@@ -27,6 +27,8 @@ export interface Message {
   createdAt: number
   attachments?: Attachment[]
   webSearch?: WebSearchHit[]
+  /** Wall-clock ms for assistant generation (stream start → finish or stop). */
+  generationMs?: number
 }
 
 export interface Chat {

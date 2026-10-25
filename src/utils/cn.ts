@@ -24,6 +24,18 @@ export function formatRelativeTime(timestamp: number): string {
   return new Date(timestamp).toLocaleDateString()
 }
 
+/** Human-readable duration for assistant generation time. */
+export function formatGenerationDuration(ms: number): string {
+  if (ms < 1000) return `${ms} ms`
+  const seconds = ms / 1000
+  if (seconds < 60) {
+    return seconds < 10 ? `${seconds.toFixed(1)} s` : `${Math.round(seconds)} s`
+  }
+  const minutes = Math.floor(seconds / 60)
+  const rem = Math.round(seconds % 60)
+  return rem > 0 ? `${minutes}m ${rem}s` : `${minutes}m`
+}
+
 export function truncate(text: string, max = 48): string {
   const cleaned = text.replace(/\s+/g, ' ').trim()
   if (cleaned.length <= max) return cleaned
