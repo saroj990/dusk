@@ -3,7 +3,6 @@ import {
   Check,
   Copy,
   FileText,
-  Globe,
   ImageIcon,
   Pencil,
   RefreshCw,
@@ -15,6 +14,7 @@ import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { Markdown } from './Markdown'
 import { previewMessageText } from './messageCollapse'
+import { WebSearchSources } from './WebSearchSources'
 import { cn, formatBytes } from '@/utils/cn'
 
 interface MessageBubbleProps {
@@ -49,8 +49,9 @@ export function MessageBubble({
     !editing
 
   useEffect(() => {
+    if (!editing) return
     setDraft(message.content)
-  }, [message.content])
+  }, [message.content, editing])
 
   useEffect(() => {
     setUserExpanded(false)
@@ -161,32 +162,6 @@ export function MessageBubble({
               </div>
             )}
 
-            {message.webSearch && message.webSearch.length > 0 && (
-              <div className="space-y-1 rounded-lg border border-border bg-muted/30 px-2 py-2">
-                <div className="flex items-center gap-1 text-[11px] font-medium text-muted-foreground">
-                  <Globe className="h-3 w-3" />
-                  Sources
-                </div>
-                <ul className="space-y-1">
-                  {message.webSearch.map((hit) => (
-                    <li key={hit.url} className="text-[11px] leading-snug">
-                      <a
-                        href={hit.url}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="font-medium underline-offset-2 hover:underline"
-                      >
-                        {hit.title}
-                      </a>
-                      {hit.snippet ? (
-                        <span className="block text-muted-foreground">{hit.snippet}</span>
-                      ) : null}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
-
             {isUser ? (
               message.content ? (
                 <p className="whitespace-pre-wrap text-sm leading-relaxed">
@@ -202,6 +177,10 @@ export function MessageBubble({
                 <Markdown content={message.content} />
               )
             ) : null}
+
+            {message.webSearch && message.webSearch.length > 0 && (
+              <WebSearchSources hits={message.webSearch} className="mt-1" />
+            )}
 
             {isStreaming && (
               <span className="ml-0.5 inline-block h-4 w-1.5 animate-pulse rounded-sm bg-foreground/70 align-middle" />
@@ -225,7 +204,10 @@ export function MessageBubble({
                 variant="ghost"
                 size="sm"
                 className="h-7 px-2"
-                onClick={() => setEditing(true)}
+                onClick={() => {
+                  setDraft(message.content)
+                  setEditing(true)
+                }}
               >
                 <Pencil className="h-3.5 w-3.5" />
                 Edit

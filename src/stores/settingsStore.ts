@@ -52,7 +52,9 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
   },
 
   setActiveModel: async (activeModel) => {
-    await get().updateSettings({ activeModel })
+    if (get().settings.activeModel !== activeModel) {
+      await get().updateSettings({ activeModel })
+    }
     if (activeModel) {
       await get().touchRecentModel(activeModel)
     }
@@ -108,10 +110,17 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
   },
 
   touchRecentModel: async (modelId) => {
-    const recentModels = [
-      modelId,
-      ...get().settings.recentModels.filter((m) => m !== modelId),
-    ].slice(0, RECENT_LIMIT)
+    const prev = get().settings.recentModels
+    const recentModels = [modelId, ...prev.filter((m) => m !== modelId)].slice(
+      0,
+      RECENT_LIMIT,
+    )
+    if (
+      recentModels.length === prev.length &&
+      recentModels.every((id, i) => id === prev[i])
+    ) {
+      return
+    }
     await get().updateSettings({ recentModels })
   },
 

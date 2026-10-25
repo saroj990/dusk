@@ -51,13 +51,7 @@ export function App() {
     if (!settingsHydrated) return
     const provider = getActiveProviderConfig(settings)
     void refreshModels(provider)
-  }, [
-    settingsHydrated,
-    settings.activeProviderId,
-    settings.providers,
-    refreshModels,
-    settings,
-  ])
+  }, [settingsHydrated, settings.activeProviderId, settings.providers, refreshModels])
 
   useEffect(() => {
     if (!models.length) return

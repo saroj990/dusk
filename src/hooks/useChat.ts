@@ -14,17 +14,15 @@ import { searchWeb } from '@/services/webSearch'
 let activeAbort: AbortController | null = null
 
 export function useChat() {
-  const {
-    createChat,
-    appendMessage,
-    updateMessage,
-    setMessages,
-    setStreaming,
-    setStreamingContent,
-    setError,
-    getActiveChat,
-    isStreaming,
-  } = useChatStore()
+  const createChat = useChatStore((s) => s.createChat)
+  const appendMessage = useChatStore((s) => s.appendMessage)
+  const updateMessage = useChatStore((s) => s.updateMessage)
+  const setMessages = useChatStore((s) => s.setMessages)
+  const setStreaming = useChatStore((s) => s.setStreaming)
+  const setStreamingContent = useChatStore((s) => s.setStreamingContent)
+  const setError = useChatStore((s) => s.setError)
+  const getActiveChat = useChatStore((s) => s.getActiveChat)
+  const isStreaming = useChatStore((s) => s.isStreaming)
 
   const stop = useCallback(() => {
     activeAbort?.abort()
